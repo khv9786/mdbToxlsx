@@ -24,44 +24,73 @@ public class MdbCounterService {
         long startTime  = System.currentTimeMillis();
         Map<String, Map<String, List<ColumnCount>>> fileTableMap = new LinkedHashMap<>();
         for (File mdb : mdbFiles) {
-            System.out.println("[INFO] 처리 시작: " + mdb.getAbsolutePath());
-            String url = "jdbc:ucanaccess://" + mdb.getAbsolutePath();
-            Map<String, List<ColumnCount>> tableMap = new LinkedHashMap<>();
-            try (Connection conn = DriverManager.getConnection(url)) {
-                DatabaseMetaData meta = conn.getMetaData();
-                try (ResultSet tables = meta.getTables(null, null, "%", new String[]{"TABLE"})) {
-                    while (tables.next()) {
-                        String table = tables.getString("TABLE_NAME");
-//                        System.out.println("  [INFO] 테이블: " + table);
-                        List<ColumnCount> columns = new ArrayList<>();
-                        try (ResultSet cols = meta.getColumns(null, null, table, "%")) {
-                            while (cols.next()) {
-                                String colName = cols.getString("COLUMN_NAME");
-                                String colType = cols.getString("TYPE_NAME");
-                                int cnt = countValid(conn, table, colName, colType);
-                                columns.add(new ColumnCount(table, colName, cnt));
-//                                System.out.println("    [INFO] 컬럼: " + colName + " → " + cnt + "개");
-                            }
-                        }
-                        tableMap.put(table, columns);
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("[ERROR] " + mdb.getName() + " 처리 중 오류: " + e.getMessage());
-                e.printStackTrace();
-            }
-            System.out.println("[INFO] 처리 완료 파일명:" + mdb.getAbsolutePath());
-            // 파일명(확장자 제외) 기준으로 Map에 저장
-            String fileName = mdb.getName();
-            if (fileName.toLowerCase().endsWith(MDB_EXT)) {
-                fileName = fileName.substring(0, fileName.length() - MDB_EXT.length());
-            }
-            fileTableMap.put(fileName, tableMap);
+            fileTableMap.put(getFileNameWithoutExt(mdb), processOneFile(mdb));
         }
         long endTime = System.currentTimeMillis();
         long timeElapsed = endTime - startTime;
         System.out.println("로딩 시간:"+timeElapsed/1000+"sec");
         return fileTableMap;
+    }
+
+    /**
+     * 하나의 MDB 파일을 처리하여 테이블별 컬럼 카운트 Map을 반환
+     */
+    private Map<String, List<ColumnCount>> processOneFile(File mdb) {
+        Map<String, List<ColumnCount>> tableMap = new LinkedHashMap<>();
+        String url = "jdbc:ucanaccess://" + mdb.getAbsolutePath();
+        try (Connection conn = DriverManager.getConnection(url)) {
+            for (String table : getTableNames(conn)) {
+                tableMap.put(table, processOneTable(conn, table));
+            }
+        } catch (Exception e) {
+            System.err.println("[ERROR] " + mdb.getName() + " 처리 중 오류: " + e.getMessage());
+            e.printStackTrace();
+        }
+        System.out.println("[INFO] 처리 완료 파일명:" + mdb.getAbsolutePath());
+        return tableMap;
+    }
+
+    /**
+     * DB에서 테이블명 목록을 가져옴
+     */
+    private List<String> getTableNames(Connection conn) throws SQLException {
+        List<String> tables = new ArrayList<>();
+        DatabaseMetaData meta = conn.getMetaData();
+        try (ResultSet rs = meta.getTables(null, null, "%", new String[]{"TABLE"})) {
+            while (rs.next()) {
+                tables.add(rs.getString("TABLE_NAME"));
+            }
+        }
+        return tables;
+    }
+
+    /**
+     * 하나의 테이블에서 컬럼별 데이터 개수 리스트 반환
+     */
+    private List<ColumnCount> processOneTable(Connection conn, String table) throws SQLException {
+        List<ColumnCount> columns = new ArrayList<>();
+        DatabaseMetaData meta = conn.getMetaData();
+        try (ResultSet cols = meta.getColumns(null, null, table, "%")) {
+            while (cols.next()) {
+                String colName = cols.getString("COLUMN_NAME");
+                String colType = cols.getString("TYPE_NAME");
+                int cnt = countValid(conn, table, colName, colType);
+                columns.add(new ColumnCount.Builder()
+                    .tableName(table)
+                    .columnName(colName)
+                    .count(cnt)
+                    .build());
+            }
+        }
+        return columns;
+    }
+
+    /**
+     * 파일명에서 확장자 제거
+     */
+    private String getFileNameWithoutExt(File file) {
+        String name = file.getName();
+        return name.toLowerCase().endsWith(MDB_EXT) ? name.substring(0, name.length() - MDB_EXT.length()) : name;
     }
 
     /**
@@ -79,7 +108,6 @@ public class MdbCounterService {
         String sql;
         type = type.toUpperCase();
         // 데이터 타입에 따라 다른 쿼리 조건 적용
-        // UcanAccess 문제인지, 0이나 null 이라는 조건으로 조회 시 조회가 안되는 문제 발생.
         if (type.contains("CHAR") || type.contains("TEXT")) {
             sql = "SELECT COUNT(*) FROM [" + table + "] WHERE [" + col + "] IS NOT NULL AND [" + col + "] <> '' AND [" + col + "] <> '0'";
         } else if (type.contains("INT") || type.contains("NUMERIC") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("FLOAT")) {
@@ -87,7 +115,6 @@ public class MdbCounterService {
         } else {
             sql = "SELECT COUNT(*) FROM [" + table + "] WHERE [" + col + "] IS NOT NULL";
         }
-        // 쿼리 실행 및 결과 반환
         try (PreparedStatement ps = conn.prepareStatement(sql); 
              ResultSet rs = ps.executeQuery()) {
             return rs.next() ? rs.getInt(1) : 0;
