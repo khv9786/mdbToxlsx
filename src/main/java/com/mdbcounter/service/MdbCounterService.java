@@ -50,7 +50,7 @@ public class MdbCounterService {
                 System.err.println("[ERROR] " + mdb.getName() + " 처리 중 오류: " + e.getMessage());
                 e.printStackTrace();
             }
-            System.out.println("[INFO] 처리 완료: " + mdb.getAbsolutePath());
+            System.out.println("[INFO] 처리 완료 파일명:" + mdb.getAbsolutePath());
             // 파일명(확장자 제외) 기준으로 Map에 저장
             String fileName = mdb.getName();
             if (fileName.toLowerCase().endsWith(MDB_EXT)) {
@@ -79,6 +79,7 @@ public class MdbCounterService {
         String sql;
         type = type.toUpperCase();
         // 데이터 타입에 따라 다른 쿼리 조건 적용
+        // UcanAccess 문제인지, 0이나 null 이라는 조건으로 조회 시 조회가 안되는 문제 발생.
         if (type.contains("CHAR") || type.contains("TEXT")) {
             sql = "SELECT COUNT(*) FROM [" + table + "] WHERE [" + col + "] IS NOT NULL AND [" + col + "] <> '' AND [" + col + "] <> '0'";
         } else if (type.contains("INT") || type.contains("NUMERIC") || type.contains("DECIMAL") || type.contains("DOUBLE") || type.contains("FLOAT")) {

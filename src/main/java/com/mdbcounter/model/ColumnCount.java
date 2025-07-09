@@ -29,7 +29,6 @@ public class ColumnCount {
     
     /**
      * 테이블명을 반환합니다.
-     * 
      * @return 테이블명
      */
     public String getTableName() { 
@@ -38,7 +37,6 @@ public class ColumnCount {
     
     /**
      * 컬럼명을 반환합니다.
-     * 
      * @return 컬럼명
      */
     public String getColumnName() { 
@@ -47,7 +45,6 @@ public class ColumnCount {
     
     /**
      * 유효한 데이터 개수를 반환합니다.
-     * 
      * @return 데이터 개수
      */
     public int getCount() { 

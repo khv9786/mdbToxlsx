@@ -81,5 +81,17 @@ java -jar target/mdb-counter-1.0-SNAPSHOT.jar
 - 디렉토리에 쓰기 권한이 있는지 확인하세요.
 - 디스크 공간이 충분한지 확인하세요. 
 
+### UCanAccess 관련 경고/에러가 계속 출력되는 경우
+
+- UCanAccess 드라이버는 버전에 따라 함수 자동 로딩 관련 경고/에러가 발생할 수 있습니다.
+- 아래와 같이 **JVM 옵션**을 추가하면 대부분의 경고/에러 메시지를 억제할 수 있습니다.
+
+```
+-Ducanaccess.disableAutoLoadFunctions=true
+-Ducanaccess.disableAutoLoadingFunctions=true
+```
+
+- 인텔리제이/명령행에서 실행 시 VM 옵션에 위 값을 추가하세요.
+- 예시: 인텔리제이 Run/Debug Configurations > VM options
 
 --김현빈

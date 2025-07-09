@@ -5,20 +5,34 @@ import com.mdbcounter.service.ExcelExporter;
 import com.mdbcounter.service.MdbCounterService;
 
 import java.io.File;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
-        System.setProperty("ucanaccess.disableAutoLoadFunctions", "true");
+        // UCanAccess 경고 차단용
+        PrintStream originalErr = System.err;
+        System.setErr(new PrintStream(OutputStream.nullOutputStream())); // Java 11 이상
 
-        // 로그 줄이기
-        java.util.logging.Logger.getLogger("net.ucanaccess").setLevel(java.util.logging.Level.SEVERE);
-        java.util.logging.Logger.getLogger("com.healthmarketscience.jackcess").setLevel(java.util.logging.Level.SEVERE);
+        // 로그 레벨 조정 (추가적으로)
+        Logger.getLogger("net.ucanaccess").setLevel(Level.SEVERE);
+        Logger.getLogger("com.healthmarketscience.jackcess").setLevel(Level.SEVERE);
+        try {
+            run(); // 기존 main 로직을 run() 메서드로 분리
+        } finally {
+            System.setErr(originalErr); // 경고 차단 해제
+        }
+    }
 
+
+    public static void run() {
 
         Scanner sc = new Scanner(System.in);
         while (true) {
@@ -51,7 +65,6 @@ public class Main {
 
             // 3. 파일 리스트 출력
             System.out.println("\n=== 발견된 MDB 파일 목록 ===");
-            String fileName = "";
             for (int i = 0; i < mdbFiles.size(); i++)
                 System.out.println((i + 1) + ". " + mdbFiles.get(i).getAbsolutePath());
 
@@ -100,4 +113,5 @@ public class Main {
             System.out.println("---------------------------------------------");
         }
     }
-} 
+}
+
