@@ -1,4 +1,4 @@
-package com.mdbcounter;
+package com.mdbcounter.view;
 
 import java.io.File;
 import java.util.List;
@@ -21,6 +21,19 @@ public class ConsoleView {
         }
     }
 
+    public String inputString(String prompt) {
+        System.out.print(prompt);
+        return sc.nextLine().trim();
+    }
+
+    public void printMessage(String msg) {
+        System.out.println(msg);
+    }
+
+    public void printErrorMessage(String msg) {
+        System.err.println("[오류] " + msg);
+    }
+
     public void printFileList(List<File> files) {
         System.out.println("\n=== 발견된 MDB 파일 목록 ===");
         for (int i = 0; i < files.size(); i++)
@@ -28,8 +41,13 @@ public class ConsoleView {
     }
 
     public boolean confirm(String message) {
-        System.out.print("\n" + message + " (y/n): ");
-        return sc.nextLine().trim().equalsIgnoreCase("y");
+        while (true) {
+            System.out.print("\n" + message + " (y/n): ");
+            String input = sc.nextLine().trim().toLowerCase();
+            if (input.equals("y")) return true;
+            if (input.equals("n")) return false;
+            printErrorMessage("y 또는 n만 입력하세요.");
+        }
     }
 
     public String inputExcelPath(File excelDir) {

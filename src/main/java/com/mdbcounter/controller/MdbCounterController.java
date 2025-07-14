@@ -1,6 +1,6 @@
 package com.mdbcounter.controller;
 
-import com.mdbcounter.ConsoleView;
+import com.mdbcounter.view.ConsoleView;
 import com.mdbcounter.model.ColumnCount;
 import com.mdbcounter.service.ExcelExporter;
 import com.mdbcounter.service.MdbCounterService;
@@ -8,11 +8,14 @@ import com.mdbcounter.service.MdbCounterService;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MdbCounterController {
     private final ConsoleView view;
+
     public MdbCounterController(ConsoleView view) {
         this.view = view;
     }
@@ -26,8 +29,9 @@ public class MdbCounterController {
                 continue;
             }
             view.printFileList(mdbFiles);
-            if (!view.confirm("이 파일들로 진행할까요?")) continue;
-
+            if (!view.confirm("이 파일들로 진행할까요?")) {
+                continue;
+            } 
             Map<String, Map<String, List<ColumnCount>>> fileTableMap = countAllTables(mdbFiles);
             File excelDir = view.inputDirectory("엑셀 파일을 저장할 폴더 경로를 입력하세요: ");
             String excelPath = view.inputExcelPath(excelDir);
@@ -58,7 +62,11 @@ public class MdbCounterController {
 
     private void exportToExcel(Map<String, Map<String, List<ColumnCount>>> fileTableMap, String excelPath) {
         try {
-            new ExcelExporter().export(fileTableMap, excelPath);
+            ExcelExporter exporter = new ExcelExporter.Builder()
+                    .totalSheetName("총계")
+                    .autoSizeColumn(true)
+                    .build();
+            exporter.export(fileTableMap, excelPath);
             view.printResult("엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
         } catch (Exception e) {
             view.printResult("엑셀 저장 중 오류: " + e.getMessage());
