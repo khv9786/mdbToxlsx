@@ -1,40 +1,24 @@
 package com.mdbcounter.service;
 
-import com.mdbcounter.model.ColumnCount;
+import com.mdbcounter.model.ComparisonResult;
+import com.mdbcounter.model.TableCount;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook; // .xlsx 용
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.LinkedHashMap;
 
 public class ExcelExporter {
-    private final String totalSheetName;
-    private final String dateFormat;
-    private final boolean autoSizeColumn;
+    private final String sheetName;
 
     private ExcelExporter(Builder builder) {
-        this.totalSheetName = builder.totalSheetName;
-        this.dateFormat = builder.dateFormat;
-        this.autoSizeColumn = builder.autoSizeColumn;
+        this.sheetName = builder.sheetName;
     }
 
     public static class Builder {
-        private String totalSheetName = "총계";
-        private String dateFormat = "yyyyMMdd-HHmm";
-        private boolean autoSizeColumn = true;
-
-        public Builder totalSheetName(String name) {
-            this.totalSheetName = name;
-            return this;
-        }
-        public Builder dateFormat(String format) {
-            this.dateFormat = format;
-            return this;
-        }
-        public Builder autoSizeColumn(boolean auto) {
-            this.autoSizeColumn = auto;
+        private String sheetName = "총계";
+        public Builder sheetName(String name) {
+            this.sheetName = name;
             return this;
         }
         public ExcelExporter build() {
@@ -42,46 +26,76 @@ public class ExcelExporter {
         }
     }
 
-    public void export(Map<String, Map<String, List<ColumnCount>>> fileTableMap, String filePath) throws IOException {
+    // 테이블 총 cnt 반환
+    public void exportCntTable(List<TableCount> data, String filePath) throws IOException {
+        long startTime = System.currentTimeMillis();
         try (Workbook workbook = new XSSFWorkbook()) {
-            long startTime = System.currentTimeMillis();
-
+            Sheet sheet = workbook.createSheet(sheetName);
+            // 스타일 생성
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle dataStyle = createDataStyle(workbook);
 
-            // 1. 총계 시트 생성
-            Sheet totalSheet = workbook.createSheet(totalSheetName);
-            LinkedHashMap<String, Integer> columnTotalMap = collectColumnTotals(fileTableMap);
-            createHeaderRow(totalSheet, columnTotalMap, headerStyle);
-            createTotalRow(totalSheet, columnTotalMap, dataStyle);
-            if (autoSizeColumn) autoSizeColumns(totalSheet, columnTotalMap.size());
-
-            // 2. 파일별 시트 생성
-            for (Map.Entry<String, Map<String, List<ColumnCount>>> fileEntry : fileTableMap.entrySet()) {
-                String sheetName = sanitizeSheetName(fileEntry.getKey());
-                Map<String, List<ColumnCount>> tableMap = fileEntry.getValue();
-                Sheet sheet = workbook.createSheet(sheetName);
-                int rowNum = 0;
-                for (Map.Entry<String, List<ColumnCount>> entry : tableMap.entrySet()) {
-                    String tableName = entry.getKey();
-                    List<ColumnCount> columns = entry.getValue();
-                    rowNum = createTableBlock(sheet, rowNum, tableName, columns, headerStyle, dataStyle);
-                }
-                if (autoSizeColumn && !tableMap.isEmpty()) {
-                    int colCount = tableMap.values().iterator().next().size();
-                    autoSizeColumns(sheet, colCount);
-                }
+            // 헤더: 테이블명, 데이터 개수
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"테이블명", "데이터 개수"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
             }
+            // 데이터
+            int rowIdx = 1;
+            for (TableCount cc : data) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(cc.getTableName());
+                row.createCell(1).setCellValue(cc.getCount());
+                for (int i = 0; i < 2; i++) row.getCell(i).setCellStyle(dataStyle);
+            }
+            // 컬럼 너비 자동조정
+            for (int i = 0; i < 2; i++) sheet.autoSizeColumn(i);
             try (FileOutputStream out = new FileOutputStream(filePath)) {
                 workbook.write(out);
             }
-            long endTime = System.currentTimeMillis();
-            long timeElapsed = endTime - startTime;
-            System.out.println("엑셀 저장 시간:"+timeElapsed/1000+"sec");
         }
+        long endTime = System.currentTimeMillis();
+        System.out.println("엑셀 저장 시간: " + (endTime - startTime) / 1000.0 + " sec");
     }
 
-    // ====== 엑셀 관련 private 으로 정리 ======
+    // MDB 와 DB 비교 후 키가 있는지 판단.
+    public void exportCntKey(List<TableCount> data, String filePath) throws IOException {
+        long startTime = System.currentTimeMillis();
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet(sheetName);
+            // 스타일 생성
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle dataStyle = createDataStyle(workbook);
+
+            // 헤더: 파일명, 테이블명, 키 값, 데이터 개수
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"테이블명", "데이터 개수"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            // 데이터
+            int rowIdx = 1;
+            for (TableCount cc : data) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(cc.getTableName());
+                row.createCell(1).setCellValue(cc.getCount());
+                for (int i = 0; i < 2; i++) row.getCell(i).setCellStyle(dataStyle);
+            }
+            // 컬럼 너비 자동조정
+            for (int i = 0; i < 2; i++) sheet.autoSizeColumn(i);
+            try (FileOutputStream out = new FileOutputStream(filePath)) {
+                workbook.write(out);
+            }
+        }
+        long endTime = System.currentTimeMillis();
+        System.out.println("엑셀 저장 시간: " + (endTime - startTime) / 1000.0 + " sec");
+    }
+
     private CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
@@ -106,63 +120,75 @@ public class ExcelExporter {
         style.setBorderRight(BorderStyle.THIN);
         return style;
     }
-    private LinkedHashMap<String, Integer> collectColumnTotals(Map<String, Map<String, List<ColumnCount>>> fileTableMap) {
-        LinkedHashMap<String, Integer> columnTotalMap = new LinkedHashMap<>();
-        for (Map<String, List<ColumnCount>> tableMap : fileTableMap.values()) {
-            for (List<ColumnCount> columns : tableMap.values()) {
-                for (ColumnCount cc : columns) {
-                    columnTotalMap.putIfAbsent(cc.getColumnName(), 0);
-                    columnTotalMap.put(cc.getColumnName(), columnTotalMap.get(cc.getColumnName()) + cc.getCount());
-                }
+
+    /**
+     * MDB와 DB 비교 결과를 엑셀로 저장
+     */
+    public void exportComparisonResult(ComparisonResult result, String filePath) throws IOException {
+        long startTime = System.currentTimeMillis();
+        try (Workbook workbook = new XSSFWorkbook()) {
+            
+            // 1. 없는 테이블 시트
+            Sheet missingTablesSheet = workbook.createSheet("없는 테이블");
+            createMissingTablesSheet(missingTablesSheet, result.getMissingTables());
+            
+            // 2. 없는 키 시트
+            Sheet missingKeysSheet = workbook.createSheet("R_stream 없는 테이블");
+            createMissingKeysSheet(missingKeysSheet, result.getMissingKeys());
+            
+            try (FileOutputStream out = new FileOutputStream(filePath)) {
+                workbook.write(out);
             }
         }
-        return columnTotalMap;
+        long endTime = System.currentTimeMillis();
+        System.out.println("비교 결과 엑셀 저장 시간: " + (endTime - startTime) / 1000.0 + " sec");
     }
-    private void createHeaderRow(Sheet sheet, LinkedHashMap<String, Integer> columnTotalMap, CellStyle style) {
+    
+    private void createMissingTablesSheet(Sheet sheet, List<ComparisonResult.MissingTableInfo> missingTables) {
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        CellStyle dataStyle = createDataStyle(sheet.getWorkbook());
+        // 헤더: 파일명, 테이블명
         Row headerRow = sheet.createRow(0);
-        int colIdx = 0;
-        for (String col : columnTotalMap.keySet()) {
-            Cell cell = headerRow.createCell(colIdx++);
-            cell.setCellValue(col);
-            cell.setCellStyle(style);
-        }
-    }
-    private void createTotalRow(Sheet sheet, LinkedHashMap<String, Integer> columnTotalMap, CellStyle style) {
-        Row totalRow = sheet.createRow(1);
-        int colIdx = 0;
-        for (String col : columnTotalMap.keySet()) {
-            Cell cell = totalRow.createCell(colIdx++);
-            cell.setCellValue(columnTotalMap.get(col));
-            cell.setCellStyle(style);
-        }
-    }
-    private int createTableBlock(Sheet sheet, int rowNum, String tableName, List<ColumnCount> columns, CellStyle headerStyle, CellStyle dataStyle) {
-        Row tableRow = sheet.createRow(rowNum++);
-        Cell tableCell = tableRow.createCell(0);
-        tableCell.setCellValue("[" + tableName + "]");
-        tableCell.setCellStyle(headerStyle);
-        Row columnRow = sheet.createRow(rowNum++);
-        for (int i = 0; i < columns.size(); i++) {
-            Cell cell = columnRow.createCell(i);
-            cell.setCellValue(columns.get(i).getColumnName());
+        String[] headers = {"파일명", "테이블명"};
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
             cell.setCellStyle(headerStyle);
         }
-        Row countRow = sheet.createRow(rowNum++);
-        for (int i = 0; i < columns.size(); i++) {
-            Cell cell = countRow.createCell(i);
-            cell.setCellValue(columns.get(i).getCount());
-            cell.setCellStyle(dataStyle);
+        // 데이터
+        int rowIdx = 1;
+        for (ComparisonResult.MissingTableInfo info : missingTables) {
+            Row row = sheet.createRow(rowIdx++);
+            row.createCell(0).setCellValue(info.getMdbFileName());
+            row.createCell(1).setCellValue(info.getTableName());
+            for (int i = 0; i < headers.length; i++) row.getCell(i).setCellStyle(dataStyle);
         }
-        return rowNum + 1; // 한 줄 띄우기
+        // 컬럼 너비 자동조정
+        for (int i = 0; i < 2; i++) sheet.autoSizeColumn(i);
     }
-    private void autoSizeColumns(Sheet sheet, int colCount) {
-        for (int i = 0; i < colCount; i++) {
-            sheet.autoSizeColumn(i);
+    
+    private void createMissingKeysSheet(Sheet sheet, List<ComparisonResult.MissingKeyInfo> missingKeys) {
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        CellStyle dataStyle = createDataStyle(sheet.getWorkbook());
+        // 헤더: 파일명, 테이블명, 키값
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"파일명", "테이블명", "키값"};
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
         }
-    }
-    // sheet에 못쓰는 문자들 정리
-    private String sanitizeSheetName(String name) {
-        String sanitized = name.replaceAll("[\\\\/?*\\[\\]]", "_");
-        return sanitized.length() > 31 ? sanitized.substring(0, 31) : sanitized;
+        // 파일 명 / 테이블 명 / 키 값
+        int rowIdx = 1;
+        for (ComparisonResult.MissingKeyInfo info : missingKeys) {
+            Row row = sheet.createRow(rowIdx++);
+            row.createCell(0).setCellValue(info.getMdbFileName());
+            row.createCell(1).setCellValue(info.getTableName());
+            row.createCell(2).setCellValue(info.getRStreamValue());
+            for (int i = 0; i < headers.length; i++) row.getCell(i).setCellStyle(dataStyle);
+        }
+        // 컬럼 너비 자동조정
+        for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
+
     }
 } 

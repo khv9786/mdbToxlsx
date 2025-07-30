@@ -56,6 +56,7 @@ java -jar target/mdb-counter-1.0-SNAPSHOT.jar
 
 - **UCanAccess**: MDB 파일 읽기
 - **Apache POI**: Excel 파일 생성
+- **PostgreSQL**: 데이터베이스 연결
 - **SLF4J + Logback**: 로깅
 
 ## 로그
@@ -64,9 +65,44 @@ java -jar target/mdb-counter-1.0-SNAPSHOT.jar
 - 콘솔 출력
 - `logs/mdb-counter.log` 파일
 
+## PostgreSQL 설정
+
+### 1. 데이터베이스 설정 파일 수정
+
+`src/main/resources/database.properties` 파일을 열어서 다음 정보를 수정하세요:
+
+```properties
+db.url=jdbc:postgresql://localhost:5432/your_database_name
+db.username=your_username
+db.password=your_password
+```
+
+### 2. 데이터베이스 연결 테스트
+
+데이터베이스 연결을 테스트하려면 다음 명령을 실행하세요:
+
+```bash
+mvn exec:java -Dexec.mainClass="com.mdbcounter.util.DatabaseTest"
+```
+
+### 3. PostgreSQL 설치 및 설정
+
+1. PostgreSQL을 설치하세요: https://www.postgresql.org/download/
+2. 데이터베이스를 생성하세요:
+   ```sql
+   CREATE DATABASE your_database_name;
+   ```
+3. 사용자를 생성하고 권한을 부여하세요:
+   ```sql
+   CREATE USER your_username WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE your_database_name TO your_username;
+   ```
+
 ## 주의사항
 
 - MDB 파일에 접근할 수 있는 권한이 필요합니다.
+- PostgreSQL 서버가 실행 중이어야 합니다.
+- 데이터베이스 연결 정보가 올바르게 설정되어야 합니다.
 - 큰 MDB 파일의 경우 처리 시간이 오래 걸릴 수 있습니다.
 - Excel 파일은 프로그램이 실행된 디렉토리에 생성됩니다.
 

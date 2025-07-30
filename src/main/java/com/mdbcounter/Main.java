@@ -10,7 +10,6 @@ import java.util.logging.Logger;
 
 public class Main {
     public static void main(String[] args) {
-        // 불필요한 에러 무시 용
         PrintStream originalErr = System.err;
         System.setErr(new PrintStream(OutputStream.nullOutputStream())); // Java 11 이상
         Logger.getLogger("net.ucanaccess").setLevel(Level.SEVERE);
@@ -22,6 +21,4 @@ public class Main {
         }
     }
 }
-
-
 
