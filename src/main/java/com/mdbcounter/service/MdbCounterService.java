@@ -1,17 +1,19 @@
 package com.mdbcounter.service;
 
-import com.mdbcounter.model.MdbTableInfo;
+
 import com.mdbcounter.model.TableCount;
 
 import java.io.File;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MdbCounterService {
     public static final String MDB_EXT = ".mdb";
 
     /**
      * 각 테이블의 총 데이터 개수를 반환
+     *
      * @param mdb MDB 파일
      * @return 테이블별 총 데이터 개수 List<TableCount>
      */

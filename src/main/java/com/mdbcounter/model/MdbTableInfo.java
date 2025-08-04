@@ -9,19 +9,19 @@ public class MdbTableInfo {
     private final String mdbFileName;
     private final String tableName;
     private final Set<String> rStreamValues;
-    private final int totalCount;
+    private final int rStreamCnt;
 
     private MdbTableInfo(Builder builder) {
         this.mdbFileName = builder.mdbFileName;
         this.tableName = builder.tableName;
         this.rStreamValues = builder.rStreamValues;
-        this.totalCount = builder.totalCount;
+        this.rStreamCnt = builder.rStreamCnt;
     }
 
     public String getMdbFileName() { return mdbFileName; }
     public String getTableName() { return tableName; }
     public Set<String> getRStreamValues() { return rStreamValues; }
-    public int getTotalCount() { return totalCount; }
+    public int getRstreamCnt() { return rStreamCnt; }
 
     /**
      * MDB 컬럼명 정규화, 스페이스 -> 언더바, 대문자 -> 소문자 변환
@@ -34,7 +34,7 @@ public class MdbTableInfo {
         private String mdbFileName;
         private String tableName;
         private Set<String> rStreamValues;
-        private int totalCount;
+        private int rStreamCnt;
 
         public Builder mdbFileName(String mdbFileName) {
             this.mdbFileName = mdbFileName;
@@ -48,8 +48,8 @@ public class MdbTableInfo {
             this.rStreamValues = rStreamValues;
             return this;
         }
-        public Builder totalCount(int totalCount) {
-            this.totalCount = totalCount;
+        public Builder rStreamCnt(int rStreamCnt) {
+            this.rStreamCnt = rStreamCnt;
             return this;
         }
         public MdbTableInfo build() {

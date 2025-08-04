@@ -61,41 +61,6 @@ public class ExcelExporter {
         System.out.println("엑셀 저장 시간: " + (endTime - startTime) / 1000.0 + " sec");
     }
 
-    // MDB 와 DB 비교 후 키가 있는지 판단.
-    public void exportCntKey(List<TableCount> data, String filePath) throws IOException {
-        long startTime = System.currentTimeMillis();
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet(sheetName);
-            // 스타일 생성
-            CellStyle headerStyle = createHeaderStyle(workbook);
-            CellStyle dataStyle = createDataStyle(workbook);
-
-            // 헤더: 파일명, 테이블명, 키 값, 데이터 개수
-            Row headerRow = sheet.createRow(0);
-            String[] headers = {"테이블명", "데이터 개수"};
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
-            // 데이터
-            int rowIdx = 1;
-            for (TableCount cc : data) {
-                Row row = sheet.createRow(rowIdx++);
-                row.createCell(0).setCellValue(cc.getTableName());
-                row.createCell(1).setCellValue(cc.getCount());
-                for (int i = 0; i < 2; i++) row.getCell(i).setCellStyle(dataStyle);
-            }
-            // 컬럼 너비 자동조정
-            for (int i = 0; i < 2; i++) sheet.autoSizeColumn(i);
-            try (FileOutputStream out = new FileOutputStream(filePath)) {
-                workbook.write(out);
-            }
-        }
-        long endTime = System.currentTimeMillis();
-        System.out.println("엑셀 저장 시간: " + (endTime - startTime) / 1000.0 + " sec");
-    }
-
     private CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
@@ -125,25 +90,24 @@ public class ExcelExporter {
      * MDB와 DB 비교 결과를 엑셀로 저장
      */
     public void exportComparisonResult(ComparisonResult result, String filePath) throws IOException {
-        long startTime = System.currentTimeMillis();
+
         try (Workbook workbook = new XSSFWorkbook()) {
-            
+
             // 1. 없는 테이블 시트
             Sheet missingTablesSheet = workbook.createSheet("없는 테이블");
             createMissingTablesSheet(missingTablesSheet, result.getMissingTables());
-            
+
             // 2. 없는 키 시트
             Sheet missingKeysSheet = workbook.createSheet("R_stream 없는 테이블");
             createMissingKeysSheet(missingKeysSheet, result.getMissingKeys());
-            
+
             try (FileOutputStream out = new FileOutputStream(filePath)) {
                 workbook.write(out);
             }
         }
-        long endTime = System.currentTimeMillis();
-        System.out.println("비교 결과 엑셀 저장 시간: " + (endTime - startTime) / 1000.0 + " sec");
+
     }
-    
+
     private void createMissingTablesSheet(Sheet sheet, List<ComparisonResult.MissingTableInfo> missingTables) {
         CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
         CellStyle dataStyle = createDataStyle(sheet.getWorkbook());
@@ -166,7 +130,7 @@ public class ExcelExporter {
         // 컬럼 너비 자동조정
         for (int i = 0; i < 2; i++) sheet.autoSizeColumn(i);
     }
-    
+
     private void createMissingKeysSheet(Sheet sheet, List<ComparisonResult.MissingKeyInfo> missingKeys) {
         CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
         CellStyle dataStyle = createDataStyle(sheet.getWorkbook());

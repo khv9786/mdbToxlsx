@@ -2,22 +2,21 @@ package com.mdbcounter;
 
 import com.mdbcounter.controller.MdbCounterController;
 import com.mdbcounter.view.ConsoleView;
-
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Main {
+    private static final Logger logger = LoggerFactory.getLogger(Main.class);
+    
     public static void main(String[] args) {
-        PrintStream originalErr = System.err;
-        System.setErr(new PrintStream(OutputStream.nullOutputStream())); // Java 11 이상
-        Logger.getLogger("net.ucanaccess").setLevel(Level.SEVERE);
-        Logger.getLogger("com.healthmarketscience.jackcess").setLevel(Level.SEVERE);
+        logger.info("MDB Counter 애플리케이션 시작");
+        
         try {
             new MdbCounterController(new ConsoleView()).run();
-        } finally {
-            System.setErr(originalErr);
+            logger.info("MDB Counter 애플리케이션 정상 종료");
+        } catch (Exception e) {
+            logger.error("애플리케이션 실행 중 오류 발생: {}", e.getMessage(), e);
+            System.exit(1);
         }
     }
 }

@@ -1,13 +1,11 @@
 package com.mdbcounter.view;
 import java.io.*;
 import java.util.List;
-import java.util.StringTokenizer;
 
 public class ConsoleView {
     private final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-    private StringTokenizer st;
     private StringBuilder sb = new StringBuilder();
-        public File inputDirectory(String prompt) {
+    public File inputDirectory(String prompt) {
         while (true) {
             try {
                 System.out.print(prompt);
@@ -23,13 +21,18 @@ public class ConsoleView {
             }
         }
     }
-    
+
     public void printMessage(String msg) {
         System.out.println(msg);
     }
 
     public void printErrorMessage(String msg) {
         System.err.println("[오류] " + msg);
+    }
+
+    public void printLoadingTime(long start, long end, String msg){
+        double time = (end - start) / 1000.0;
+        System.out.println(msg + time + " sec");
     }
 
     public void printFileList(List<File> files) {
@@ -55,60 +58,10 @@ public class ConsoleView {
         }
     }
 
-    public boolean askRepeat() {
-        try {
-            System.out.print("\n다른 폴더를 계속 탐색하시겠습니까? (y/n): ");
-            String again = br.readLine().trim();
-            if (!again.equalsIgnoreCase("y")) {
-                System.out.println("프로그램을 종료합니다.");
-                return false;
-            }
-            return true;
-        } catch (IOException e) {
-            System.err.println("입력 중 오류가 발생했습니다: " + e.getMessage());
-            return false;
-        }
-    }
-    
     public String inputChoice(String prompt) {
         try {
             System.out.print(prompt);
             return br.readLine().trim();
-        } catch (IOException e) {
-            System.err.println("입력 중 오류가 발생했습니다: " + e.getMessage());
-            return "";
-        }
-    }
-
-    //에러 처리용용
-    public boolean hasNextToken() {
-        try {
-            if (st == null || !st.hasMoreTokens()) {
-                st = new StringTokenizer(br.readLine());
-            }
-            return st.hasMoreTokens();
-        } catch (IOException e) {
-            System.err.println("입력 중 오류가 발생했습니다: " + e.getMessage());
-            return false;
-        }
-    }
-    // 에러 처리용요용용ㅇ
-    public String nextToken() {
-        if (st == null || !st.hasMoreTokens()) {
-            try {
-                st = new StringTokenizer(br.readLine());
-            } catch (IOException e) {
-                System.err.println("입력 중 오류가 발생했습니다: " + e.getMessage());
-                return "";
-            }
-        }
-        return st.nextToken();
-    }
-    
-    // 에러 처리용
-    public String readLine() {
-        try {
-            return br.readLine();
         } catch (IOException e) {
             System.err.println("입력 중 오류가 발생했습니다: " + e.getMessage());
             return "";
