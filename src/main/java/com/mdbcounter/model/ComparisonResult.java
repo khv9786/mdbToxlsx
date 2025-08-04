@@ -12,18 +12,20 @@ public class ComparisonResult {
     private final List<MissingTableInfo> missingTables;
     private final List<MissingKeyInfo> missingKeys;
     private final List<String> rStreamValues;
+    private final Integer rStreamCnt;
 
     private ComparisonResult(Builder builder) {
         this.missingTables = builder.missingTables;
         this.missingKeys = builder.missingKeys;
         this.rStreamValues = builder.rStreamValues;
+        this.rStreamCnt = builder.rStreamCnt;
     }
 
     public List<MissingTableInfo> getMissingTables() { return missingTables; }
     public List<MissingKeyInfo> getMissingKeys() { return missingKeys; }
-    public List<String> rStreamValues(){return rStreamValues; }
 
     public static class Builder {
+        public Integer rStreamCnt;
         private List<MissingTableInfo> missingTables;
         private List<MissingKeyInfo> missingKeys;
         private List<String> rStreamValues;

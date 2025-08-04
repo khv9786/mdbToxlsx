@@ -24,9 +24,9 @@ public class MdbCounterController {
             view.printMessage("1. 테이블 데이터 개수 카운트");
             view.printMessage("2. MDB와 DB 키 연결 확인");
             view.printMessage("3. 종료");
-            
+
             String choice = view.inputChoice("작업을 선택하세요 (1-3): ");
-            
+
             switch (choice) {
                 case "1":
                     runTableCountMode();
@@ -41,12 +41,13 @@ public class MdbCounterController {
                     view.printErrorMessage("잘못된 선택입니다. 다시 선택해주세요.");
                     continue;
             }
-            
-            if (!view.confirm("다른 작업을 계속하시겠습니까?")) break;
+
+            if (!view.confirm("다른 작업을 계속하시겠습니까?"))
+                view.printMessage("프로그램을 종료합니다.");
             view.printMessage("---------------------------------------------");
         }
     }
-    
+
     private void runTableCountMode() {
         File mdbDir = getValidDirectory("MDB 파일이 있는 폴더 경로를 입력하세요: ");
         long searchStart = System.currentTimeMillis();
@@ -90,9 +91,9 @@ public class MdbCounterController {
         long excelStart = System.currentTimeMillis();
         exportToExcel(allTableCounts, excelPath);
         long excelEnd = System.currentTimeMillis();
-        view.printMessage("엑셀 저장 시간: " + (excelEnd - excelStart) / 1000.0 + " sec");
+        view.printLoadingTime(excelStart, excelEnd, "엑셀 저장 시간: ");
     }
-    
+
     private void runKeyComparisonMode() {
         File mdbDir = getValidDirectory("MDB 파일이 있는 폴더 경로를 입력하세요: ");
         long searchStart = System.currentTimeMillis();
@@ -106,32 +107,34 @@ public class MdbCounterController {
         view.printFileList(mdbFiles);
         if (!view.confirm("이 파일들로 진행할까요?")) return;
         view.printMessage("MDB 파일을 로딩중입니다.");
-        // MDB 파일에서 테이블 정보 읽기
         long loadStart = System.currentTimeMillis();
         List<MdbTableInfo> allMdbTableInfos = new ArrayList<>();
-//        MdbCounterService mdbService = new MdbCounterService();
         DbComparisonService dbComparisonService = new DbComparisonService();
+
+        // 파일 마다 데이터 받아오기.
         for (File mdb : mdbFiles) {
             List<MdbTableInfo> oneFileInfos = dbComparisonService.getMdbTableInfo(mdb);
             allMdbTableInfos.addAll(oneFileInfos);
         }
+
         long loadEnd = System.currentTimeMillis();
-        view.printMessage("MDB 로딩 시간: " + (loadEnd - loadStart) / 1000.0 + " sec");
+        view.printLoadingTime(loadStart, loadEnd, "MDB 로딩 시간: ");
 
         // DB와 비교
         view.printMessage("DB와 비교 중입니다. 잠시만 기다려주세요...");
         long compareStart = System.currentTimeMillis();
         DbComparisonService dbService = new DbComparisonService();
-        ComparisonResult result = dbService.compareMdbWithDb(allMdbTableInfos);
+        ComparisonResult result = dbService.compareMdbWithDbOptimized(allMdbTableInfos);
+
         long compareEnd = System.currentTimeMillis();
-        view.printMessage("DB 비교 시간: " + (compareEnd - compareStart) / 1000.0 + " sec");
+        view.printLoadingTime(compareStart, compareEnd, "DB 비교 시간: ");
 
         // 결과 출력
         view.printMessage("=== 비교 결과 ===");
         view.printMessage("없는 테이블 개수: " + result.getMissingTables().size());
         view.printMessage("없는 키 개수: " + result.getMissingKeys().size());
 
-        if(result.getMissingTables().size() == 0 && result.getMissingKeys().size() == 0){
+        if(result.getMissingTables().isEmpty() && result.getMissingKeys().isEmpty()){
             view.printMessage("엑셀로 저장할 데이터가 없습니다.");
             return;
         }
@@ -142,7 +145,7 @@ public class MdbCounterController {
         long excelStart = System.currentTimeMillis();
         exportComparisonToExcel(result, excelPath);
         long excelEnd = System.currentTimeMillis();
-        view.printMessage("엑셀 저장 시간: " + (excelEnd - excelStart) / 1000.0 + " sec");
+        view.printLoadingTime(excelStart, excelEnd, "엑셀 저장 시간: ");
     }
 
     private File getValidDirectory(String prompt) {
@@ -185,29 +188,33 @@ public class MdbCounterController {
     private void exportToExcel(List<TableCount> tableCounts, String excelPath) {
         try {
             ExcelExporter exporter = new ExcelExporter.Builder()
-                .sheetName("총계")
-                .build();
+                    .sheetName("총계")
+                    .build();
             exporter.exportCntTable(tableCounts, excelPath);
             view.printMessage("엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
         } catch (Exception e) {
             view.printErrorMessage("엑셀 저장 중 오류: " + e.getMessage());
         }
     }
-    
+
     private String getComparisonExcelPath(File excelDir) {
         String date = new java.text.SimpleDateFormat("yyyyMMdd-HHmm").format(new java.util.Date());
         return new File(excelDir, date + "-mdb_db_비교결과.xlsx").getAbsolutePath();
     }
-    
+
     private void exportComparisonToExcel(ComparisonResult result, String excelPath) {
+        long startTime = System.currentTimeMillis();
+
         try {
             ExcelExporter exporter = new ExcelExporter.Builder()
-                .sheetName("비교결과")
-                .build();
+                    .sheetName("비교결과")
+                    .build();
             exporter.exportComparisonResult(result, excelPath);
             view.printMessage("비교 결과 엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
         } catch (Exception e) {
             view.printErrorMessage("엑셀 저장 중 오류: " + e.getMessage());
         }
+        long endTime = System.currentTimeMillis();
+        view.printLoadingTime(startTime, endTime, "비교 결과 엑셀 저장 시간: ");
     }
 } 
