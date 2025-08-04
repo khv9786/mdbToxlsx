@@ -53,6 +53,7 @@ public class DbComparisonService {
         logger.info("==== 비교 로직 시작 =====");
         List<ComparisonResult.MissingTableInfo> missingTables = new ArrayList<>();
         List<ComparisonResult.MissingKeyInfo> missingKeys = new ArrayList<>();
+        List<ComparisonResult.CountComparisonInfo> countComparisons = new ArrayList<>();
 
         try (Connection dbConn = DatabaseConfig.getConnection()) {
             //  DB에 존재하는 테이블 목록 정리.
@@ -73,17 +74,28 @@ public class DbComparisonService {
                     continue;
                 }
                 String fillterTableName = convertTableCorrectName(NormalizedTableName);
-                // 3. 있다면 r_stream 개수 세기
-                Set<String> mdbRStreams = mdbTable.getRStreamValues();
+
+                // 3. 있다면 r_stream 값과, 개수가 몇개인지 map으로 반환.
+                Map<String, Integer> mdbRStreams = mdbTable.getRStreamValues();
+
                 if (!mdbRStreams.isEmpty()) {
-                    for (String rStream : mdbRStreams) {
-                        int count = getRStreamCount(dbConn, fillterTableName, rStream);
 
-                        if (count == 0) {
-                            logger.info("MDB {} 에는 있지만 DB에 없는 R_stream 값 발견: {} (테이블: {} )",mdbFileName, rStream, fillterTableName);
+                    Iterator<String> keys = mdbRStreams.keySet().iterator();
+                    while (keys.hasNext()) {
+                        String rStream = keys.next();
+                        int mdbCount = mdbRStreams.get(rStream);
+                        int dbCount = getRStreamCount(dbConn, fillterTableName, rStream);
+
+                        // 모든 r_stream 값에 대해 개수 비교 정보 저장
+                        countComparisons.add(new ComparisonResult.CountComparisonInfo(
+                            mdbFileName, tableName, rStream, mdbCount, dbCount));
+
+                        if (dbCount == 0) {
+                            logger.info("MDB {} 에는 있지만 DB에 없는 R_stream 값 발견: {} (테이블: {} )", mdbFileName, rStream, fillterTableName);
                             missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
-                            // todo 존재 하지 않을때 해당 키가 mdb에 몇개 있는지 조회하는 로직 추가 필요.
-
+                        } else if (mdbCount != dbCount) {
+//                            logger.info("MDB {} 와 DB {} 의 R_stream {} 개수 차이: MDB={}, DB={}, 차이={}",mdbFileName, fillterTableName, rStream, mdbCount, dbCount, mdbCount - dbCount);
+                            missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
                         }
                     }
                 }
@@ -97,6 +109,7 @@ public class DbComparisonService {
         return new ComparisonResult.Builder()
                 .missingTables(missingTables)
                 .missingKeys(missingKeys)
+                .countComparisons(countComparisons)
                 .build();
     }
 
@@ -117,7 +130,7 @@ public class DbComparisonService {
     }
 
     /**
-     * 특정 r_stream 값의 개수를 조회
+     * 특정 r_stream가 DB에 몇개가 있는지 조회
      */
     private int getRStreamCount(Connection conn, String tableName, String rStream) throws SQLException {
         String sql = "SELECT COUNT(*) FROM " + tableName + " WHERE " + COLNAME + " = ?";
@@ -149,14 +162,14 @@ public class DbComparisonService {
             
             for (String table : tableNames) {
                 try {
-                    Set<String> rStreamValues = getRStreamValues(conn, table);
+                    Map<String, Integer> rStreamValues = getRStreamValues(conn, table);
                     int rStreamCnt = getMdbRStreamCnt(conn, table);
 
                     result.add(new MdbTableInfo.Builder()
                             .mdbFileName(mdbFileName)
                             .tableName(table)
                             .rStreamValues(rStreamValues)
-//                            .rStreamCnt(rStreamCnt)
+                            .rStreamCnt(rStreamCnt)
                             .build());
                 } catch (Exception e) {
                     logger.error("MDB 테이블 {} 처리 중 오류: {}", table, e.getMessage());
@@ -182,10 +195,11 @@ public class DbComparisonService {
     }
 
     /**
-     * MDB R_stream 컬럼에서 중복 제거 리턴
+     * MDB R_stream 컬럼에서 중복 제거 및 개수 Map에 정리.
      */
-    private Set<String> getRStreamValues(Connection conn, String table) throws SQLException {
-        Set<String> rStreamValues = new HashSet<>();
+    private HashMap<String, Integer> getRStreamValues(Connection conn, String table) throws SQLException {
+        HashMap<String, Integer> rStreamInfo= new HashMap<>();
+        List<String> rStreamValues = new ArrayList<>();
         DatabaseMetaData meta = conn.getMetaData();
 
         // R_stream 컬럼이 있는지 확인
@@ -211,8 +225,20 @@ public class DbComparisonService {
                     }
                 }
             }
+            sql = "SELECT COUNT(*) FROM [" + table + "] WHERE [R_stream] = ?";
+            for (String rStream : rStreamValues) {
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, rStream);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            int count = rs.getInt(1);
+                            rStreamInfo.put(rStream, count);
+                        }
+                    }
+                }
+            }
         }
-        return rStreamValues;
+        return rStreamInfo;
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.mdbcounter.model;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -8,7 +9,7 @@ import java.util.Set;
 public class MdbTableInfo {
     private final String mdbFileName;
     private final String tableName;
-    private final Set<String> rStreamValues;
+    private final Map<String, Integer> rStreamValues;
     private final int rStreamCnt;
 
     private MdbTableInfo(Builder builder) {
@@ -20,7 +21,7 @@ public class MdbTableInfo {
 
     public String getMdbFileName() { return mdbFileName; }
     public String getTableName() { return tableName; }
-    public Set<String> getRStreamValues() { return rStreamValues; }
+    public Map<String, Integer> getRStreamValues() { return rStreamValues; }
     public int getRstreamCnt() { return rStreamCnt; }
 
     /**
@@ -33,7 +34,7 @@ public class MdbTableInfo {
     public static class Builder {
         private String mdbFileName;
         private String tableName;
-        private Set<String> rStreamValues;
+        private Map<String, Integer> rStreamValues;
         private int rStreamCnt;
 
         public Builder mdbFileName(String mdbFileName) {
@@ -44,7 +45,7 @@ public class MdbTableInfo {
             this.tableName = tableName;
             return this;
         }
-        public Builder rStreamValues(Set<String> rStreamValues) {
+        public Builder rStreamValues(Map<String, Integer> rStreamValues) {
             this.rStreamValues = rStreamValues;
             return this;
         }

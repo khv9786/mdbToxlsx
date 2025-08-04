@@ -101,6 +101,10 @@ public class ExcelExporter {
             Sheet missingKeysSheet = workbook.createSheet("R_stream 없는 테이블");
             createMissingKeysSheet(missingKeysSheet, result.getMissingKeys());
 
+            // 3. 개수 비교 시트
+            Sheet countComparisonSheet = workbook.createSheet("개수 비교");
+            createCountComparisonSheet(countComparisonSheet, result.getCountComparisons());
+
             try (FileOutputStream out = new FileOutputStream(filePath)) {
                 workbook.write(out);
             }
@@ -154,5 +158,32 @@ public class ExcelExporter {
         // 컬럼 너비 자동조정
         for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
 
+    }
+
+    private void createCountComparisonSheet(Sheet sheet, List<ComparisonResult.CountComparisonInfo> countComparisons) {
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        CellStyle dataStyle = createDataStyle(sheet.getWorkbook());
+        // 헤더: 파일명, 테이블명, R_stream 값, MDB 개수, DB 개수, 차이
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"파일명", "테이블명", "R_stream 값", "MDB 개수", "DB 개수", "차이"};
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+        // 데이터
+        int rowIdx = 1;
+        for (ComparisonResult.CountComparisonInfo info : countComparisons) {
+            Row row = sheet.createRow(rowIdx++);
+            row.createCell(0).setCellValue(info.getMdbFileName());
+            row.createCell(1).setCellValue(info.getTableName());
+            row.createCell(2).setCellValue(info.getRStreamValue());
+            row.createCell(3).setCellValue(info.getMdbCount());
+            row.createCell(4).setCellValue(info.getDbCount());
+            row.createCell(5).setCellValue(info.getDifference());
+            for (int i = 0; i < headers.length; i++) row.getCell(i).setCellStyle(dataStyle);
+        }
+        // 컬럼 너비 자동조정
+        for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
     }
 } 
