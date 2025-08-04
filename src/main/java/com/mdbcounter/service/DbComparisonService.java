@@ -93,10 +93,11 @@ public class DbComparisonService {
                         if (dbCount == 0) {
                             logger.info("MDB {} 에는 있지만 DB에 없는 R_stream 값 발견: {} (테이블: {} )", mdbFileName, rStream, fillterTableName);
                             missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
-                        } else if (mdbCount != dbCount) {
-//                            logger.info("MDB {} 와 DB {} 의 R_stream {} 개수 차이: MDB={}, DB={}, 차이={}",mdbFileName, fillterTableName, rStream, mdbCount, dbCount, mdbCount - dbCount);
-                            missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
                         }
+//                        else if (mdbCount != dbCount) {
+////                            logger.info("MDB {} 와 DB {} 의 R_stream {} 개수 차이: MDB={}, DB={}, 차이={}",mdbFileName, fillterTableName, rStream, mdbCount, dbCount, mdbCount - dbCount);
+//                            missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
+//                        }
                     }
                 }
             }
