@@ -35,14 +35,6 @@ public class DbComparisonService {
         RESERVEDWORD = Collections.unmodifiableMap(map);
     }
 
-
-    //todo mdb R_stream 개수 파악 로직 추가
-//    public int getMdbColCnt (List<MdbTableInfo> mdbTableInfos){
-//        for(MdbTableInfo dbTableInfos : mdbTableInfos){
-//            dbTableInfos.getRStreamValues();
-//        }
-//    }
-
     /**
      * MDB와 DB를 비교하여 결과를 반환
      *
@@ -94,10 +86,6 @@ public class DbComparisonService {
 //                            logger.info("MDB {} 에는 있지만 DB에 없는 R_stream 값 발견: {} (테이블: {} )", mdbFileName, rStream, fillterTableName);
                             missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
                         }
-//                        else if (mdbCount != dbCount) {
-////                            logger.info("MDB {} 와 DB {} 의 R_stream {} 개수 차이: MDB={}, DB={}, 차이={}",mdbFileName, fillterTableName, rStream, mdbCount, dbCount, mdbCount - dbCount);
-//                            missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
-//                        }
                     }
                 }
             }
@@ -113,6 +101,7 @@ public class DbComparisonService {
                 .compareCnt(compareCnt)
                 .build();
     }
+
 
     /**
      * DB에 존재하는 테이블 목록 얻기
@@ -273,7 +262,7 @@ public class DbComparisonService {
         } else if (RESERVEDWORD.containsKey(table)) {
             return RESERVEDWORD.get(table);
         } else {
-            return table;  // 👉 맵에 없으면 원래 이름 그대로 반환
+            return table;
         }
     }
 }
