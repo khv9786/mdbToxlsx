@@ -29,7 +29,6 @@ public class MdbCounterService {
                         .build());
             }
         } catch (Exception e) {
-            System.err.println("[ERROR] " + mdb.getName() + " 처리 중 오류: " + e.getMessage());
             e.printStackTrace();
         }
         return result;

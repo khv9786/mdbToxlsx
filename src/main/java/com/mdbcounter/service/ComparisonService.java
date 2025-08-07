@@ -9,7 +9,7 @@ import com.mdbcounter.util.ExcelExportUtil;
 
 import java.io.File;
 import java.util.*;
-
+// TODO 서비스랑 컨트롤러 역할 분리가 제대로 안되었음. 컨트롤러 분리만 너무 신경쓴듯
 public class ComparisonService implements startService {
     private final ConsoleView view;
     private final DbComparisonService dbComparisonService;

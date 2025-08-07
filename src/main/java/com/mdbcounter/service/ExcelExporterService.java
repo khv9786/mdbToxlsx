@@ -69,7 +69,7 @@ public class ExcelExporterService {
                 applyCellStyles(row, COUNT_TABLE_HEADERS.length, dataStyle);
             }
 
-            autoSizeColumns(sheet, MISSING_TABLE_HEADERS.length);
+            autoSizeColumns(sheet, COUNT_TABLE_HEADERS.length);
         } catch (Exception e) {
             throw new IOException("없는 테이블 시트 저장 실패: " + e.getMessage(), e);
         }

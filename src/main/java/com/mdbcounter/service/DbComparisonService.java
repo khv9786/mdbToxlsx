@@ -75,6 +75,7 @@ public class DbComparisonService {
                     Iterator<String> keys = mdbRStreams.keySet().iterator();
                     while (keys.hasNext()) {
                         String rStream = keys.next();
+                        // 해당 r_Stream당 몇개인지 가져오기.
                         int mdbCount = mdbRStreams.get(rStream);
                         int dbCount = getRStreamCount(dbConn, fillterTableName, rStream);
 
@@ -189,7 +190,6 @@ public class DbComparisonService {
      */
     private HashMap<String, Integer> getRStreamValues(Connection conn, String table) throws SQLException {
         HashMap<String, Integer> rStreamInfo= new HashMap<>();
-        List<String> rStreamValues = new ArrayList<>();
         DatabaseMetaData meta = conn.getMetaData();
 
         // R_stream 컬럼이 있는지 확인
@@ -203,27 +203,16 @@ public class DbComparisonService {
                 }
             }
         }
-
+        // 튜닝 후 N+1 문제 해결
         if (hasRStreamColumn) {
-            String sql = "SELECT DISTINCT [R_stream] FROM [" + table + "] WHERE [R_stream] IS NOT NULL";
+            String sql = "SELECT R_stream, COUNT(*) as cnt FROM [" + table + "] WHERE R_stream IS NOT NULL GROUP BY R_stream";
             try (PreparedStatement ps = conn.prepareStatement(sql);
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String value = rs.getString(1);
-                    if (value != null && !value.trim().isEmpty()) {
-                        rStreamValues.add(value.trim());
-                    }
-                }
-            }
-            sql = "SELECT COUNT(*) FROM [" + table + "] WHERE [R_stream] = ?";
-            for (String rStream : rStreamValues) {
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    ps.setString(1, rStream);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            int count = rs.getInt(1);
-                            rStreamInfo.put(rStream, count);
-                        }
+                    String rStream = rs.getString("R_stream").trim();
+                    int count = rs.getInt("cnt");
+                    if (!rStream.isEmpty()) {
+                        rStreamInfo.put(rStream, count);
                     }
                 }
             }
