@@ -53,7 +53,7 @@ public class DbComparisonService {
         logger.info("==== 비교 로직 시작 =====");
         List<ComparisonResult.MissingTableInfo> missingTables = new ArrayList<>();
         List<ComparisonResult.MissingKeyInfo> missingKeys = new ArrayList<>();
-        List<ComparisonResult.CountComparisonInfo> countComparisons = new ArrayList<>();
+        List<ComparisonResult.CompareCntInfo> compareCnt = new ArrayList<>();
 
         try (Connection dbConn = DatabaseConfig.getConnection()) {
             //  DB에 존재하는 테이블 목록 정리.
@@ -87,11 +87,11 @@ public class DbComparisonService {
                         int dbCount = getRStreamCount(dbConn, fillterTableName, rStream);
 
                         // 모든 r_stream 값에 대해 개수 비교 정보 저장
-                        countComparisons.add(new ComparisonResult.CountComparisonInfo(
+                        compareCnt.add(new ComparisonResult.CompareCntInfo(
                             mdbFileName, tableName, rStream, mdbCount, dbCount));
 
                         if (dbCount == 0) {
-                            logger.info("MDB {} 에는 있지만 DB에 없는 R_stream 값 발견: {} (테이블: {} )", mdbFileName, rStream, fillterTableName);
+//                            logger.info("MDB {} 에는 있지만 DB에 없는 R_stream 값 발견: {} (테이블: {} )", mdbFileName, rStream, fillterTableName);
                             missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
                         }
 //                        else if (mdbCount != dbCount) {
@@ -110,7 +110,7 @@ public class DbComparisonService {
         return new ComparisonResult.Builder()
                 .missingTables(missingTables)
                 .missingKeys(missingKeys)
-                .countComparisons(countComparisons)
+                .compareCnt(compareCnt)
                 .build();
     }
 
