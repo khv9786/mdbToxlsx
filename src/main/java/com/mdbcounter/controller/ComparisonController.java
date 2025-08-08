@@ -26,7 +26,7 @@ public class ComparisonController implements startService {
         File mdbDir = UserInputUtil.getValidDirectoryFromUser(view, "MDB 파일이 있는 폴더 경로를 입력하세요: ");
         if (mdbDir == null) return;
 
-        List<File> mdbFiles = FileService.searchMdbFilesWithTime(mdbDir);
+        List<File> mdbFiles = FileService.findMdbFiles(mdbDir);
         if (mdbFiles.isEmpty()) {
             view.printMessage("해당 폴더 및 하위 폴더에 mdb 파일이 없습니다.");
             return;

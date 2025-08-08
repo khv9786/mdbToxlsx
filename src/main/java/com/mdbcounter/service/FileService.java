@@ -29,8 +29,6 @@ public class FileService {
         return result;
     }
 
-
-
     /**
      * 디렉터리 유효성 검사
      * @param dir 검사할 디렉터리
@@ -45,17 +43,4 @@ public class FileService {
         
         return dir.isDirectory();
     }
-
-    /**
-     * MDB 파일 검색 (시간 측정 포함)
-     * @param view 콘솔 뷰
-     * @param mdbDir 검색할 디렉터리
-     * @return 검색된 MDB 파일 리스트
-     */
-    public static List<File> searchMdbFilesWithTime(File mdbDir) {
-        long searchStart = System.currentTimeMillis();
-        List<File> mdbFiles = FileService.findMdbFiles(mdbDir);
-        return mdbFiles;
-    }
-
 }

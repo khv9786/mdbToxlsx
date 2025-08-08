@@ -121,7 +121,7 @@ public class MdbCounterService {
      * @param mdbFiles
      * @return
      */
-    public Map<String, Integer> aggregationMdbFile(List<File> mdbFiles) {
+    public Map<String, Integer> calMdbTableCnt(List<File> mdbFiles) {
         Map<String, Integer> tableTotalMap = new LinkedHashMap<>();
         for (File mdb : mdbFiles) {
             List<TableCount> oneFileCounts = countTableColumnData(mdb);

@@ -12,7 +12,7 @@ public class Main {
     
     public static void main(String[] args) {
         logger.info("MDB Counter 애플리케이션 시작");
-        
+
         try {
             new MdbCounterController(
                     new ConsoleView(), new DbComparisonService(), new MdbCounterService()).run();
