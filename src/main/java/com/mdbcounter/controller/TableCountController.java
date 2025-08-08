@@ -1,11 +1,10 @@
 package com.mdbcounter.controller;
 
-import com.mdbcounter.model.MdbTableInfo;
 import com.mdbcounter.model.TableCount;
+import com.mdbcounter.service.FileService;
 import com.mdbcounter.service.MdbCounterService;
 import com.mdbcounter.service.startService;
 import com.mdbcounter.util.ExcelExportUtil;
-import com.mdbcounter.util.FileSearchUtil;
 import com.mdbcounter.util.UserInputUtil;
 import com.mdbcounter.view.ConsoleView;
 
@@ -27,17 +26,16 @@ public class TableCountController implements startService {
         File mdbDir = UserInputUtil.getValidDirectoryFromUser(view, "MDB 파일이 있는 폴더 경로를 입력하세요: ");
         if (mdbDir == null) return;
 
-        List<File> mdbFiles = FileSearchUtil.searchMdbFiles(view, mdbDir);
+        List<File> mdbFiles = FileService.searchMdbFilesWithTime(mdbDir);
         if (mdbFiles.isEmpty()) {
             view.printMessage("해당 폴더 및 하위 폴더에 mdb 파일이 없습니다.");
             return;
         }
 
+        view.printFileList(mdbFiles);
         if (!view.confirm("이 파일들로 진행할까요?")) return;
 
-        long loadStart = System.currentTimeMillis();
-        List<TableCount> allTableCounts = aggregateTableCounts(mdbFiles);
-
+        List<TableCount> allTableCounts = setTableCounts(mdbFiles);
         ExcelExportUtil.exportTableCountToExcel(view, allTableCounts);
     }
 
@@ -45,7 +43,7 @@ public class TableCountController implements startService {
     /**
      * 테이블 데이터 집계
      */
-    private List<TableCount> aggregateTableCounts(List<File> mdbFiles) {
+    private List<TableCount> setTableCounts(List<File> mdbFiles) {
         view.printMessage("해당 경로의 모든 mdb 파일 집계 중입니다. . . ");
         long loadStart = System.currentTimeMillis();
         Map<String, Integer> tableTotalMap = mdbCounterService.aggregationMdbFile(mdbFiles);
