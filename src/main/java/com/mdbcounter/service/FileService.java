@@ -1,5 +1,7 @@
 package com.mdbcounter.service;
 
+import com.mdbcounter.view.ConsoleView;
+
 import java.io.File;
 import java.util.*;
 
@@ -44,5 +46,16 @@ public class FileService {
         return dir.isDirectory();
     }
 
+    /**
+     * MDB 파일 검색 (시간 측정 포함)
+     * @param view 콘솔 뷰
+     * @param mdbDir 검색할 디렉터리
+     * @return 검색된 MDB 파일 리스트
+     */
+    public static List<File> searchMdbFilesWithTime(File mdbDir) {
+        long searchStart = System.currentTimeMillis();
+        List<File> mdbFiles = FileService.findMdbFiles(mdbDir);
+        return mdbFiles;
+    }
 
 }

@@ -37,65 +37,6 @@ public class DbComparisonService {
         RESERVEDWORD = Collections.unmodifiableMap(map);
     }
 
-//    /**
-//     * MDB와 DB를 비교하여 결과를 반환
-//     *
-//     * @param mdbTableInfos MDB 테이블 정보 리스트
-//     * @return 비교 결과
-//     */
-//    public ComparisonResult compareMdbWithDbOptimized(List<MdbTableInfo> mdbTableInfos) {
-//        log.info("==== 비교 로직 시작 =====");
-//        List<ComparisonResult.MissingTableInfo> missingTables = new ArrayList<>();
-//        List<ComparisonResult.MissingKeyInfo> missingKeys = new ArrayList<>();
-//        List<ComparisonResult.CompareCntInfo> compareCnt = new ArrayList<>();
-//
-//        try (Connection dbConn = DatabaseConfig.getConnection()) {
-//            //  DB에 존재하는 테이블 목록 정리.
-//            Set<String> dbTables = getDbTables(dbConn);
-//            log.info("DB에 존재하는 테이블 개수: {}", dbTables.size());
-//            log.info("MDB내 테이블 개수: {}", mdbTableInfos.size());
-//            for (MdbTableInfo mdbTable : mdbTableInfos) {
-//
-//                // MDB 테이블 명 정리.
-//                String mdbFileName = mdbTable.getMdbFileName(); // MDB 파일이름
-//                String tableName = mdbTable.getTableName(); // MDB 테이블 이름
-//                String NormalizedTableName = mdbTable.getNormalizedMdbColName(); // 정규화한 테이블 이름
-//
-//                if (!dbTables.contains(NormalizedTableName)) {
-//                    missingTables.add(new ComparisonResult.MissingTableInfo(mdbFileName, NormalizedTableName));
-//                    continue;
-//                }
-//                String fillterTableName = convertTableCorrectName(NormalizedTableName);
-//                Map<String, Integer> mdbRStreams = mdbTable.getRStreamValues();
-//
-//                if (!mdbRStreams.isEmpty()) {
-//
-//                    Iterator<String> keys = mdbRStreams.keySet().iterator();
-//                    while (keys.hasNext()) {
-//                        String rStream = keys.next();
-//
-//                        int mdbCount = mdbRStreams.get(rStream);
-//                        int dbCount = getRStreamCntDb(dbConn, fillterTableName, rStream);
-//
-//                        compareCnt.add(new ComparisonResult.CompareCntInfo(
-//                            mdbFileName, tableName, rStream, mdbCount, dbCount));
-//
-//                        if (dbCount == 0) {
-//                            missingKeys.add(new ComparisonResult.MissingKeyInfo(mdbTable.getMdbFileName(), tableName, rStream));
-//                        }
-//                    }
-//                }
-//            }
-//        } catch (SQLException e) {
-//            log.error("DB 비교 중 오류: {}", e.getMessage(), e);
-//        }
-//
-//        return new ComparisonResult.Builder()
-//                .missingTables(missingTables)
-//                .missingKeys(missingKeys)
-//                .compareCnt(compareCnt)
-//                .build();
-//    }
     // TODO 단계 별로 메서드 분리 완료. 인자 이름이 길어서 다소 불편,,, 더 좋은 방법 찾아보긴 해야할듯.
     /**
      * 메인 비교 메서드 - 전체 흐름 관리
@@ -356,7 +297,7 @@ public class DbComparisonService {
                 }
             }
         }
-        // 튜닝 후 N+1 문제 해결
+        // 그룹바이로 한번에 받아오기
         if (hasRStreamColumn) {
             String sql = "SELECT R_stream, COUNT(*) as cnt FROM [" + table + "] WHERE R_stream IS NOT NULL GROUP BY R_stream";
             try (PreparedStatement ps = conn.prepareStatement(sql);
@@ -388,17 +329,13 @@ public class DbComparisonService {
     }
 
     /**
-     *     예약어, 대문자 테이블 명 처리.
-      */
+     *  예약어, 대문자 테이블 명 처리.
+     */
 
     private String convertTableCorrectName(String table) {
         if (UPPER_TABLE.containsKey(table)) {
             return UPPER_TABLE.get(table);
-        } else if (RESERVEDWORD.containsKey(table)) {
-            return RESERVEDWORD.get(table);
-        } else {
-            return table;
-        }
+        } else return RESERVEDWORD.getOrDefault(table, table);
     }
 
     public boolean isDatathere(ComparisonResult result){

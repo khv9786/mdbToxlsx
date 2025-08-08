@@ -8,25 +8,22 @@ public class ComparisonResult {
     private final List<MissingTableInfo> missingTables;
     private final List<MissingKeyInfo> missingKeys;
     private final List<CompareCntInfo> compareCnt;
-    private final List<String> rStreamValues;
 
     private ComparisonResult(Builder builder) {
         this.missingTables = builder.missingTables;
         this.missingKeys = builder.missingKeys;
         this.compareCnt = builder.compareCnt;
-        this.rStreamValues = builder.rStreamValues;
     }
 
     public List<MissingTableInfo> getMissingTables() { return missingTables; }
     public List<MissingKeyInfo> getMissingKeys() { return missingKeys; }
     public List<CompareCntInfo> getcompareCnt() { return compareCnt; }
-    public List<String> rStreamValues(){return rStreamValues; }
 
     public static class Builder {
         private List<MissingTableInfo> missingTables;
         private List<MissingKeyInfo> missingKeys;
         private List<CompareCntInfo> compareCnt;
-        private List<String> rStreamValues;
+
 
         public Builder missingTables(List<MissingTableInfo> missingTables) {
             this.missingTables = missingTables;
@@ -40,10 +37,7 @@ public class ComparisonResult {
             this.compareCnt = compareCnt;
             return this;
         }
-        public Builder getMissingCnt(List<String> rStreamValues) {
-            this.rStreamValues = rStreamValues;
-            return this;
-        }
+
         public ComparisonResult build() {
             return new ComparisonResult(this);
         }

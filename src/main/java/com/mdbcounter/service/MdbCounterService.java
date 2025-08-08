@@ -5,10 +5,14 @@ import com.mdbcounter.model.TableCount;
 
 import java.io.File;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MdbCounterService {
     public static final String MDB_EXT = ".mdb";
+    public static final String COL_NAME = "r_stream";
 
     /**
      * 각 테이블의 총 데이터 개수를 반환
@@ -22,7 +26,10 @@ public class MdbCounterService {
         try (Connection conn = DriverManager.getConnection(url)) {
             for (String table : getTableNames(conn)) {
                 int totalCount = sumCntCol(conn, table);
-                result.add(new TableCount.Builder().tableName(table).count(totalCount).build());
+                result.add(new TableCount.Builder()
+                        .tableName(table)
+                        .count(totalCount)
+                        .build());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -40,26 +47,14 @@ public class MdbCounterService {
         }
         return tables;
     }
-//
-//    // 비어있지 않은 데이터 모두 더하기. -> 기존 쿼리 하나하나 보내서 너무 답답ㄷ@!~##@!@#!
-//    private int sumCntCol1(Connection conn, String table) throws SQLException {
-//        int sum = 0;
-//        DatabaseMetaData meta = conn.getMetaData();
-//        try (ResultSet cols = meta.getColumns(null, null, table, "%")) {
-//            while (cols.next()) {
-//                String colName = cols.getString("COLUMN_NAME");
-//                String sql = "SELECT COUNT([" + colName + "]) FROM [" + table + "] WHERE [" + colName + "] IS NOT NULL";
-//                try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
-//                    if (rs.next()) {
-//                        sum += rs.getInt(1);
-//                    }
-//                }
-//            }
-//        }
-//        return sum;
-//    }
 
-    // 단일쿼리로 수정. 속도는 44sec -> 32sec
+    /**
+     * 특정 테이블에 있는 데이터 싹~~~ 끌어오기
+     * @param conn
+     * @param table
+     * @return
+     * @throws SQLException
+     */
     private int sumCntCol(Connection conn, String table) throws SQLException {
         List<String> columns = new ArrayList<>();
         DatabaseMetaData meta = conn.getMetaData();
@@ -87,7 +82,41 @@ public class MdbCounterService {
     }
 
     /**
-     * mdb 파일내용 정리, 테이블 명, 몇개 있는지
+     * 특정 컬럼명으 개수 정리.
+     * @param conn
+     * @param table
+     * @param colName
+     * @return
+     * @throws SQLException
+     */
+    private int sumSpecificCntCol(Connection conn, String table, String colName) throws SQLException {
+        //특정 컬럼 확인
+        DatabaseMetaData meta = conn.getMetaData();
+        boolean hasColumn = false;
+        try (ResultSet cols = meta.getColumns(null, null, table, null)) {
+            while (cols.next()) {
+                if (colName.equalsIgnoreCase(cols.getString("COLUMN_NAME"))) {
+                    hasColumn = true;
+                    break;
+                }
+            }
+        }
+        if (!hasColumn) {
+            return 0; // 컬럼 없으면 바로 반환
+        }
+
+        String sql = "SELECT COUNT(*) FROM [" + table + "] WHERE [" + COL_NAME + "] IS NOT NULL";
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * mdb에서 테이블에 null 아닌 값 모두 정리.
      *
      * @param mdbFiles
      * @return
