@@ -2,7 +2,6 @@ package com.mdbcounter.service;
 
 import com.mdbcounter.model.ComparisonResult;
 import com.mdbcounter.model.TableCount;
-import com.mdbcounter.view.ConsoleView;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -19,7 +18,7 @@ import java.util.List;
 public class ExcelExporterService {
     private static final Logger log = LoggerFactory.getLogger(ExcelExporterService.class);
 
-    private static final String DATE_FORMAT = "yyyyMMdd-HHmm";
+    private static final String DATE_FORMAT = "yyyyMMdd_HHmm";
     // 헤더 상수
     private static final String[] COUNT_TABLE_HEADERS = {"테이블명", "데이터 개수"};
     private static final String[] MISSING_TABLE_HEADERS = {"파일명", "테이블명"};
@@ -40,7 +39,7 @@ public class ExcelExporterService {
     /**
      * 테이블 개수 데이터를 엑셀로 저장
      */
-    public void exportCntTable(List<TableCount> data, String filePath, String sheetName) throws IOException {
+    public void exportCntTable(List<TableCount> data, String filePath) throws IOException {
         try (Workbook workbook = new XSSFWorkbook()) {
             createCntSheet(workbook, data);
             saveWorkbook(workbook, filePath);
@@ -50,7 +49,7 @@ public class ExcelExporterService {
         }
     }
 
-    private void createCntSheet (Workbook workbook, List<TableCount> data) throws Exception{
+    private void createCntSheet (Workbook workbook, List<TableCount> data) throws IOException{
         try {
             Sheet sheet = workbook.createSheet(COUNT_TABLE_SHEET);
 
@@ -281,6 +280,58 @@ public class ExcelExporterService {
     }
 
     /**
+     * 워크북 저장
+     */
+    private void saveWorkbook(Workbook workbook, String filePath) throws IOException {
+        try (FileOutputStream out = new FileOutputStream(filePath)) {
+            workbook.write(out);
+        }
+    }
+
+    public static void exportTableCntExcel(List<TableCount> tableCounts, String excelPath) {
+        try {
+            ExcelExporterService exporter = new ExcelExporterService();
+            exporter.exportCntTable(tableCounts, excelPath);
+            log.info("엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
+        } catch (Exception e) {
+            log.error("엑셀 저장 중 오류: " + e.getMessage());
+        }
+
+    }
+
+    public static void exportComparisonToExcel(ComparisonResult result, String excelPath) {
+        try {
+            ExcelExporterService exporter = new ExcelExporterService();
+            exporter.exportComparisonResult(result, excelPath);
+            log.info("비교 결과 엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
+        } catch (Exception e) {
+            log.error("엑셀 저장 중 오류: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 테이블 개수용 엑셀, 경로 받아서 파일명 생성.
+     * @param excelDir
+     * @return
+     */
+    public static String getTableCntExcelPath(File excelDir) {
+        String date = new SimpleDateFormat(DATE_FORMAT).format(new Date());
+        return new File(excelDir, date + "-mdb테이블총계.xlsx").getAbsolutePath();
+    }
+
+    /**
+     * 비교 결과용 엑셀, 경로 받아서 파일명 생성.
+     * @param excelDir
+     * @return
+     */
+    public static String getCompareExcelPath(File excelDir) {
+        String date = new SimpleDateFormat(DATE_FORMAT).format(new Date());
+        return new File(excelDir, date + "-mdb_db_비교결과.xlsx").getAbsolutePath();
+    }
+
+    /** 디자인 관련 =======================================================================
+
+    /**
      * 행의 셀들에 스타일
      */
     private void applyCellStyles(Row row, int cellCount, CellStyle style) {
@@ -300,27 +351,6 @@ public class ExcelExporterService {
             sheet.autoSizeColumn(i);
         }
     }
-
-    /**
-     * 워크북 저장
-     */
-    private void saveWorkbook(Workbook workbook, String filePath) throws IOException {
-        try (FileOutputStream out = new FileOutputStream(filePath)) {
-            workbook.write(out);
-        }
-    }
-
-    /**
-     * 처리시간 로깅, 이름이랑 시작 시간 인자로
-     *
-     * @param operation
-     * @param startTime
-     */
-    private static void logProcessingTime(String operation, long startTime) {
-        long endTime = System.currentTimeMillis();
-        log.info("{} 시간: {} sec", operation, (endTime - startTime) / 1000.0);
-    }
-
     /**
      * 헤더 스타일 생성
      */
@@ -367,51 +397,5 @@ public class ExcelExporterService {
             log.warn("지원하지 않는 색상: {}, 기본값으로 설정", colorName);
             return IndexedColors.AUTOMATIC.getIndex();
         }
-    }
-
-    public static void exportToExcel(List<TableCount> tableCounts, String excelPath, ConsoleView view) {
-        long startTime = System.currentTimeMillis();
-        try {
-            ExcelExporterService exporter = new ExcelExporterService();
-            exporter.exportCntTable(tableCounts, excelPath, "총계");
-            view.printMessage("엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
-        } catch (Exception e) {
-            view.printErrorMessage("엑셀 저장 중 오류: " + e.getMessage());
-        }
-        logProcessingTime("엑셀 생성", startTime);
-    }
-
-    public static void exportComparisonToExcel(ComparisonResult result, String excelPath, ConsoleView view) {
-        long startTime = System.currentTimeMillis();
-
-        try {
-            ExcelExporterService exporter = new ExcelExporterService();
-            exporter.exportComparisonResult(result, excelPath);
-            view.printMessage("비교 결과 엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
-        } catch (Exception e) {
-            view.printErrorMessage("엑셀 저장 중 오류: " + e.getMessage());
-        }
-        logProcessingTime("비교 엑셀 생성", startTime);
-    }
-
-
-    /**
-     * 테이블 개수용 엑셀, 경로 받아서 파일명 생성.
-     * @param excelDir
-     * @return
-     */
-    public static String getTableCountExcelPath(File excelDir) {
-        String date = new SimpleDateFormat(DATE_FORMAT).format(new Date());
-        return new File(excelDir, date + "-mdb테이블총계.xlsx").getAbsolutePath();
-    }
-
-    /**
-     * 비교 결과용 엑셀, 경로 받아서 파일명 생성.
-     * @param excelDir
-     * @return
-     */
-    public static String getCompareExcelPath(File excelDir) {
-        String date = new SimpleDateFormat(DATE_FORMAT).format(new Date());
-        return new File(excelDir, date + "-mdb_db_비교결과.xlsx").getAbsolutePath();
     }
 }

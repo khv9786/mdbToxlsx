@@ -20,11 +20,10 @@ public class FileSearchUtil {
     public static List<File> searchMdbFiles(ConsoleView view, File mdbDir) {
         long searchStart = System.currentTimeMillis();
         List<File> mdbFiles = FileService.findMdbFiles(mdbDir);
-        long searchEnd = System.currentTimeMillis();
         
         view.printMessage("해당 경로 mdb 파일 탐색중입니다.");
         view.printFileList(mdbFiles);
-        view.printMessage("MDB 파일 탐색 시간: " + (searchEnd - searchStart) / 1000.0 + " sec");
+        view.printLoadingTime(searchStart,"MDB 파일 탐색 시간: ");
         
         return mdbFiles;
     }
@@ -38,9 +37,8 @@ public class FileSearchUtil {
     public static List<File> searchMdbFilesWithTime(ConsoleView view, File mdbDir) {
         long searchStart = System.currentTimeMillis();
         List<File> mdbFiles = FileService.findMdbFiles(mdbDir);
-        long searchEnd = System.currentTimeMillis();
-        
-        view.printMessage("MDB 파일 탐색 시간: " + (searchEnd - searchStart) / 1000.0 + " sec");
+
+        view.printLoadingTime(searchStart,"MDB 파일 탐색 시간: ");
         view.printFileList(mdbFiles);
         
         return mdbFiles;

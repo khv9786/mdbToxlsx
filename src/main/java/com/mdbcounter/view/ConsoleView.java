@@ -30,7 +30,8 @@ public class ConsoleView {
         System.err.println("[오류] " + msg);
     }
 
-    public void printLoadingTime(long start, long end, String msg){
+    public void printLoadingTime(long start, String msg){
+        long end = System.currentTimeMillis();
         double time = (end - start) / 1000.0;
         System.out.println(msg + time + " sec");
     }

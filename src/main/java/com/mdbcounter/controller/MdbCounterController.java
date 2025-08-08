@@ -1,19 +1,18 @@
 package com.mdbcounter.controller;
 
-import com.mdbcounter.service.FileService;
-import com.mdbcounter.service.TableCountService;
-import com.mdbcounter.service.ComparisonService;
+import com.mdbcounter.service.DbComparisonService;
+import com.mdbcounter.service.MdbCounterService;
 import com.mdbcounter.view.ConsoleView;
 
 public class MdbCounterController {
     private final ConsoleView view;
-    private final TableCountService tableCountService;
-    private final ComparisonService comparisonService;
+    private final TableCountController tableCountController;
+    private final ComparisonController comparisonController;
 
-    public MdbCounterController(ConsoleView view) {
+    public MdbCounterController(ConsoleView view, DbComparisonService dbComparisonService, MdbCounterService mdbCounterService ) {
         this.view = view;
-        this.tableCountService = new TableCountService(view);
-        this.comparisonService = new ComparisonService(view);
+        this.tableCountController = new TableCountController(view, mdbCounterService);
+        this.comparisonController = new ComparisonController(view, dbComparisonService);
     }
 
     public void run() {
@@ -28,10 +27,10 @@ public class MdbCounterController {
 
             switch (choice) {
                 case "1":
-                    tableCountService.execute();
+                    tableCountController.execute();
                     break;
                 case "2":
-                    comparisonService.execute();
+                    comparisonController.execute();
                     break;
                 case "3":
                     view.printMessage("프로그램을 종료합니다.");

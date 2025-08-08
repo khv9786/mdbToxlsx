@@ -22,13 +22,12 @@ public class ExcelExportUtil {
         File excelDir = UserInputUtil.getValidDirectoryFromUser(view, "엑셀 파일을 저장할 폴더 경로를 입력하세요: ");
         if (excelDir == null) return;
         
-        String excelPath = ExcelExporterService.getTableCountExcelPath(excelDir);
+        String excelPath = ExcelExporterService.getTableCntExcelPath(excelDir);
         view.printMessage("엑셀 파일을 저장 중입니다. 잠시만 기다려주세요...");
         
         long excelStart = System.currentTimeMillis();
-        ExcelExporterService.exportToExcel(allTableCounts, excelPath, view);
-        long excelEnd = System.currentTimeMillis();
-        view.printLoadingTime(excelStart, excelEnd, "엑셀 저장 시간: ");
+        ExcelExporterService.exportTableCntExcel(allTableCounts, excelPath);
+        view.printLoadingTime(excelStart,"엑셀 저장 시간: ");
     }
     
     /**
@@ -44,8 +43,7 @@ public class ExcelExportUtil {
         view.printMessage("엑셀 파일을 저장 중입니다. 잠시만 기다려주세요...");
         
         long excelStart = System.currentTimeMillis();
-        ExcelExporterService.exportComparisonToExcel(result, excelPath, view);
-        long excelEnd = System.currentTimeMillis();
-        view.printLoadingTime(excelStart, excelEnd, "엑셀 저장 시간: ");
+        ExcelExporterService.exportComparisonToExcel(result, excelPath);
+        view.printLoadingTime(excelStart, "엑셀 저장 시간: ");
     }
 } 
