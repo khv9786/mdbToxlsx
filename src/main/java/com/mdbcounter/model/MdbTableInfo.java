@@ -1,7 +1,6 @@
 package com.mdbcounter.model;
 
 import java.util.Map;
-import java.util.Set;
 
 /**
  * MDB 테이블 정보를 담는 모델 클래스
@@ -49,4 +48,4 @@ public class MdbTableInfo {
             return new MdbTableInfo(this);
         }
     }
-} 
+}

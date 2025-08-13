@@ -1,6 +1,5 @@
 package com.mdbcounter.service;
 
-import com.mdbcounter.view.ConsoleView;
 
 import java.io.File;
 import java.util.*;
@@ -21,7 +20,7 @@ public class FileService {
             for (File file : files) {
                 if (file.isDirectory()) {
                     queue.add(file);
-                } else if (file.getName().toLowerCase().endsWith(MdbCounterService.MDB_EXT)) {
+                } else if (file.getName().toLowerCase().endsWith(MdbService.MDB_EXT)) {
                     result.add(file);
                 }
             }

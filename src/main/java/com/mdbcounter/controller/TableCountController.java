@@ -2,8 +2,8 @@ package com.mdbcounter.controller;
 
 import com.mdbcounter.model.TableCount;
 import com.mdbcounter.service.FileService;
-import com.mdbcounter.service.MdbCounterService;
-import com.mdbcounter.service.startService;
+import com.mdbcounter.service.MdbService;
+import com.mdbcounter.service.startContainer;
 import com.mdbcounter.util.ExcelExportUtil;
 import com.mdbcounter.util.UserInputUtil;
 import com.mdbcounter.view.ConsoleView;
@@ -12,13 +12,13 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-public class TableCountController implements startService {
+public class TableCountController implements startContainer {
     private final ConsoleView view;
-    private final MdbCounterService mdbCounterService;
+    private final MdbService mdbService;
 
-    public TableCountController(ConsoleView view, MdbCounterService mdbCounterService) {
+    public TableCountController(ConsoleView view, MdbService mdbService) {
         this.view = view;
-        this.mdbCounterService = mdbCounterService;
+        this.mdbService = mdbService;
     }
 
     @Override
@@ -45,8 +45,8 @@ public class TableCountController implements startService {
     private List<TableCount> setTableCounts(List<File> mdbFiles) {
         view.printMessage("해당 경로의 모든 mdb 파일 집계 중입니다. . . ");
         long loadStart = System.currentTimeMillis();
-        Map<String, Integer> tableTotalMap = mdbCounterService.calMdbTableCnt(mdbFiles);
-        List<TableCount> allTableCounts = mdbCounterService.convertMapToList(tableTotalMap);
+        Map<String, Integer> tableTotalMap = mdbService.setMdbTableCnt(mdbFiles);
+        List<TableCount> allTableCounts = mdbService.convertMapToList(tableTotalMap);
         view.printLoadingTime(loadStart, "MDB 로딩 시간: ");
         return allTableCounts;
     }

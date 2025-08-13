@@ -2,20 +2,19 @@ package com.mdbcounter.service;
 
 import com.mdbcounter.model.ComparisonResult;
 import com.mdbcounter.model.MdbTableInfo;
+import com.mdbcounter.service.dao.DbComparisonDao;
+import com.mdbcounter.service.dao.DbDao;
 import com.mdbcounter.util.DatabaseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.*;
 
-/**
- * MDB와 PostgreSQL DB를 비교하는 서비스
- */
-public class DbComparisonService {
-    public static final String COLNAME = "r_stream";
-    private static final Logger log = LoggerFactory.getLogger(DbComparisonService.class);
+public class DbCompareService {
+
+    private static final Logger log = LoggerFactory.getLogger(DbCompareService.class);
     private static final Map<String, String> UPPER_TABLE;
     private static final Map<String, String> RESERVEDWORD;
 
@@ -37,7 +36,18 @@ public class DbComparisonService {
         RESERVEDWORD = Collections.unmodifiableMap(map);
     }
 
+
+    private final DbComparisonDao dbComparisonDao;
+    private final DbDao dbDao;
+
+    public DbCompareService(DbDao dbDao, DbComparisonDao dbComparisonDao) {
+        this.dbComparisonDao = dbComparisonDao;
+        this.dbDao = dbDao;
+
+    }
+
     // TODO 단계 별로 메서드 분리 완료. 인자 이름이 길어서 다소 불편,,, 더 좋은 방법 찾아보긴 해야할듯.
+
     /**
      * 메인 비교 메서드 - 전체 흐름 관리
      */
@@ -45,7 +55,7 @@ public class DbComparisonService {
         log.info("==== 비교 로직 시작 =====");
 
         try (Connection dbConn = DatabaseConfig.getConnection()) {
-            Set<String> dbTables = getDbTables(dbConn);
+            Set<String> dbTables = dbDao.getDbTableName(dbConn);
             logTableCounts(dbTables, mdbTableInfos);
 
             return buildComparisonResult(mdbTableInfos, dbTables, dbConn);
@@ -65,7 +75,7 @@ public class DbComparisonService {
         List<ComparisonResult.CompareCntInfo> compareCnt = new ArrayList<>();
 
         for (MdbTableInfo mdbTable : mdbTableInfos) {
-            TableComparison(mdbTable, dbTables, dbConn, missingTables, missingKeys, compareCnt);
+            tableComparison(mdbTable, dbTables, dbConn, missingTables, missingKeys, compareCnt);
         }
 
         return new ComparisonResult.Builder()
@@ -78,12 +88,11 @@ public class DbComparisonService {
     /**
      * 개별 테이블 비교 처리
      */
-    private void TableComparison(MdbTableInfo mdbTable, Set<String> dbTables, Connection dbConn,
+    private void tableComparison(MdbTableInfo mdbTable, Set<String> dbTables, Connection dbConn,
                                  List<ComparisonResult.MissingTableInfo> missingTables,
                                  List<ComparisonResult.MissingKeyInfo> missingKeys,
                                  List<ComparisonResult.CompareCntInfo> compareCnt) throws SQLException {
 
-        // 이름 정규화
         String normalizedTableName = mdbTable.getNormalizedMdbColName();
 
         if (isTableMissing(normalizedTableName, dbTables)) {
@@ -121,7 +130,7 @@ public class DbComparisonService {
             return;
         }
 
-        String filterTableName = convertTableCorrectName(mdbTable.getNormalizedMdbColName());
+        String filterTableName = convertTableCorrectName(convertTableCorrectName(mdbTable.getNormalizedMdbColName()));
 
         for (Map.Entry<String, Integer> entry : mdbRStreams.entrySet()) {
             processRStreamEntry(mdbTable, entry, filterTableName, dbConn, missingKeys, compareCnt);
@@ -137,7 +146,7 @@ public class DbComparisonService {
 
         String rStream = rStreamEntry.getKey();
         int mdbCount = rStreamEntry.getValue();
-        int dbCount = getRStreamCntDb(dbConn, filterTableName, rStream);
+        int dbCount = dbComparisonDao.getDbRStreamCnt(dbConn, filterTableName, rStream);
 
         addCountComparison(mdbTable, rStream, mdbCount, dbCount, compareCnt);
 
@@ -200,136 +209,7 @@ public class DbComparisonService {
 
 
     /**
-     * DB에 존재하는 테이블 목록 얻기
-     */
-    private Set<String> getDbTables(Connection conn) throws SQLException {
-        Set<String> dbTableNames = new HashSet<>();
-        DatabaseMetaData meta = conn.getMetaData();
-
-        try (ResultSet tables = meta.getTables(null, null, "%", new String[]{"TABLE"})) {
-            while (tables.next()) {
-                String tableName = tables.getString("TABLE_NAME");
-                dbTableNames.add(tableName);
-            }
-        }
-        return dbTableNames;
-    }
-
-    /**
-     * 특정 r_stream가 DB에 몇개가 있는지 조회
-     */
-    private int getRStreamCntDb(Connection conn, String tableName, String rStream) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM " + tableName + " WHERE " + COLNAME + " = ?";
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, rStream);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1);
-                }
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * MDB 파일에서 테이블 정보와 R_stream 값을 읽어서 반환
-     *
-     * @param mdb MDB 파일
-     * @return MDB 테이블 정보 리스트
-     */
-    public List<MdbTableInfo> getMdbTableInfo(File mdb) {
-        List<MdbTableInfo> result = new ArrayList<>();
-        String url = "jdbc:ucanaccess://" + mdb.getAbsolutePath();
-        String mdbFileName = mdb.getName().replaceAll("\\.mdb$", ""); // .mdb 확장자 제거
-
-        try (Connection conn = DriverManager.getConnection(url)) {
-            Set<String> tableNames = getMDbTableNames(conn);
-//            logger.info("MDB 테이블 개수: {}", tableNames.size());
-
-            for (String table : tableNames) {
-                try {
-                    Map<String, Integer> rStreamValues = getMdbRStreamValues(conn, table);
-                    result.add(new MdbTableInfo.Builder()
-                            .mdbFileName(mdbFileName)
-                            .tableName(table)
-                            .rStreamValues(rStreamValues)
-//                            .rStreamCnt(rStreamCnt)
-                            .build());
-                } catch (Exception e) {
-                    log.error("MDB 테이블 {} 처리 중 오류: {}", table, e.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            log.error("[ERROR] {} 처리 중 오류: {}", mdb.getName(), e.getMessage(), e);
-        }
-        return result;
-    }
-
-    /**
-     * MDB 테이블 set 추출
-     */
-    private Set<String> getMDbTableNames(Connection conn) throws SQLException {
-        Set<String> tables = new HashSet<>();
-        DatabaseMetaData meta = conn.getMetaData();
-        try (ResultSet rs = meta.getTables(null, null, "%", new String[]{"TABLE"})) {
-            while (rs.next()) {
-                tables.add(rs.getString("TABLE_NAME"));
-            }
-        }
-        return tables;
-    }
-
-    /**
-     * MDB R_stream 컬럼에서 중복 제거 및 해당 키의 개수 Map에 정리.
-     */
-    private HashMap<String, Integer> getMdbRStreamValues(Connection conn, String table) throws SQLException {
-        HashMap<String, Integer> rStreamInfo = new HashMap<>();
-        DatabaseMetaData meta = conn.getMetaData();
-
-        // R_stream 컬럼이 있는지 확인
-        boolean hasRStreamColumn = false;
-        try (ResultSet cols = meta.getColumns(null, null, table, "%")) {
-            while (cols.next()) {
-                String colName = cols.getString("COLUMN_NAME");
-                if ("r_stream".equalsIgnoreCase(colName)) {
-                    hasRStreamColumn = true;
-                    break;
-                }
-            }
-        }
-        // 그룹바이로 한번에 받아오기
-        if (hasRStreamColumn) {
-            String sql = "SELECT R_stream, COUNT(*) as cnt FROM [" + table + "] WHERE R_stream IS NOT NULL GROUP BY R_stream";
-            try (PreparedStatement ps = conn.prepareStatement(sql);
-                 ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String rStream = rs.getString("R_stream").trim();
-                    int count = rs.getInt("cnt");
-                    if (!rStream.isEmpty()) {
-                        rStreamInfo.put(rStream, count);
-                    }
-                }
-            }
-        }
-        return rStreamInfo;
-    }
-
-    /**
-     * mdb 데이터 로딩
-     */
-    public List<MdbTableInfo> loadMdbData(List<File> mdbFiles) {
-
-        List<MdbTableInfo> allMdbTableInfos = new ArrayList<>();
-        for (File mdb : mdbFiles) {
-            List<MdbTableInfo> oneFileInfos = getMdbTableInfo(mdb);
-            allMdbTableInfos.addAll(oneFileInfos);
-        }
-
-        return allMdbTableInfos;
-    }
-
-    /**
-     *  예약어, 대문자 테이블 명 처리.
+     * 예약어, 대문자 테이블 명 처리.
      */
 
     private String convertTableCorrectName(String table) {
@@ -338,7 +218,8 @@ public class DbComparisonService {
         } else return RESERVEDWORD.getOrDefault(table, table);
     }
 
-    public boolean isDatathere(ComparisonResult result){
+    public boolean hasExcelData(ComparisonResult result) {
         return (result.getMissingTables().isEmpty() && result.getMissingKeys().isEmpty());
     }
 }
+

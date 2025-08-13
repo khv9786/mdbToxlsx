@@ -1,7 +1,7 @@
 package com.mdbcounter.controller;
 
-import com.mdbcounter.service.DbComparisonService;
-import com.mdbcounter.service.MdbCounterService;
+import com.mdbcounter.service.DbCompareService;
+import com.mdbcounter.service.MdbService;
 import com.mdbcounter.view.ConsoleView;
 
 public class MdbCounterController {
@@ -9,10 +9,10 @@ public class MdbCounterController {
     private final TableCountController tableCountController;
     private final ComparisonController comparisonController;
 
-    public MdbCounterController(ConsoleView view, DbComparisonService dbComparisonService, MdbCounterService mdbCounterService ) {
+    public MdbCounterController(ConsoleView view, DbCompareService dbCompareService, MdbService mdbService) {
         this.view = view;
-        this.tableCountController = new TableCountController(view, mdbCounterService);
-        this.comparisonController = new ComparisonController(view, dbComparisonService);
+        this.tableCountController = new TableCountController(view, mdbService);
+        this.comparisonController = new ComparisonController(view, dbCompareService, mdbService);
     }
 
     public void run() {

@@ -58,7 +58,7 @@ public class DatabaseConfig {
     public static String getPassword() {
         return properties.getProperty("db.password");
     }
-    
+
     /**
      * 데이터베이스 연결을 테스트합니다.
      */

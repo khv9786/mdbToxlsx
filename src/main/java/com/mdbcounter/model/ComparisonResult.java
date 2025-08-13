@@ -9,7 +9,7 @@ public class ComparisonResult {
     private final List<MissingKeyInfo> missingKeys;
     private final List<CompareCntInfo> compareCnt;
 
-    private ComparisonResult(Builder builder) {
+    public ComparisonResult(Builder builder) {
         this.missingTables = builder.missingTables;
         this.missingKeys = builder.missingKeys;
         this.compareCnt = builder.compareCnt;
