@@ -1,6 +1,4 @@
 package com.mdbcounter.util;
-
-import com.mdbcounter.model.ComparisonResult;
 import com.mdbcounter.service.FileService;
 import com.mdbcounter.view.ConsoleView;
 

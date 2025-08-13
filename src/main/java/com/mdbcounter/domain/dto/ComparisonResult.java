@@ -1,4 +1,4 @@
-package com.mdbcounter.service.dto;
+package com.mdbcounter.domain.dto;
 
 import java.util.List;
 

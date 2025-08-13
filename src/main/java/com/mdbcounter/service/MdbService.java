@@ -3,7 +3,7 @@ package com.mdbcounter.service;
 
 import com.mdbcounter.model.MdbTableInfo;
 import com.mdbcounter.model.TableCount;
-import com.mdbcounter.service.dao.MdbDao;
+import com.mdbcounter.repository.dao.MdbDao;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,7 +132,10 @@ public class MdbService {
     public List<TableCount> convertMapToList(Map<String, Integer> tableTotalMap) {
         List<TableCount> allTableCounts = new ArrayList<>();
         for (Map.Entry<String, Integer> entry : tableTotalMap.entrySet()) {
-            allTableCounts.add(new TableCount.Builder().tableName(entry.getKey()).count(entry.getValue()).build());
+            allTableCounts.add(new TableCount.Builder()
+                    .tableName(entry.getKey())
+                    .count(entry.getValue())
+                    .build());
         }
         return allTableCounts;
     }

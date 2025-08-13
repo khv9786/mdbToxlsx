@@ -1,11 +1,11 @@
-package com.mdbcounter.service.dao;
+package com.mdbcounter.repository.dao;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
-
-import static com.mdbcounter.service.dao.MdbDao.COL_NAME;
 
 public class DbDao {
 

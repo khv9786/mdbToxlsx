@@ -1,4 +1,4 @@
-package com.mdbcounter.service.dao;
+package com.mdbcounter.repository.dao;
 
 import com.mdbcounter.model.MdbTableInfo;
 import org.slf4j.Logger;
@@ -62,7 +62,7 @@ public class MdbDao {
     }
 
     /**
-     * MDB 특정 컬럼의 값과 해당 값 Cnt 반환
+     * MDB 파일의 특정 컬럼의 값과 해당 값 Cnt 반환
      *
      * @param conn
      * @param table

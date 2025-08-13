@@ -1,6 +1,6 @@
 package com.mdbcounter.controller;
 
-import com.mdbcounter.model.ComparisonResult;
+import com.mdbcounter.domain.dto.ComparisonResult;
 import com.mdbcounter.model.MdbTableInfo;
 import com.mdbcounter.service.*;
 import com.mdbcounter.util.ExcelExportUtil;

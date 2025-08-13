@@ -4,12 +4,12 @@ import com.mdbcounter.service.DbCompareService;
 import com.mdbcounter.service.MdbService;
 import com.mdbcounter.view.ConsoleView;
 
-public class MdbCounterController {
+public class MainController {
     private final ConsoleView view;
     private final TableCountController tableCountController;
     private final ComparisonController comparisonController;
 
-    public MdbCounterController(ConsoleView view, DbCompareService dbCompareService, MdbService mdbService) {
+    public MainController(ConsoleView view, DbCompareService dbCompareService, MdbService mdbService) {
         this.view = view;
         this.tableCountController = new TableCountController(view, mdbService);
         this.comparisonController = new ComparisonController(view, dbCompareService, mdbService);

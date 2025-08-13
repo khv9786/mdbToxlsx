@@ -1,7 +1,10 @@
 package com.mdbcounter.service;
 
-import com.mdbcounter.model.ComparisonResult;
 import com.mdbcounter.model.TableCount;
+import com.mdbcounter.domain.dto.ComparisonResult;
+import com.mdbcounter.domain.dto.MissingTableInfo;
+import com.mdbcounter.domain.dto.MissingKeyInfo;
+import com.mdbcounter.domain.dto.CompareCntInfo;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -36,6 +39,49 @@ public class ExcelExporterService {
     private static final String MISSING_KEYS_SHEET = "R_stream 없는 테이블";
     private static final String COMPARE_CNT_SHEET = "개수 비교";
 
+    public static void exportTableCntExcel(List<TableCount> tableCounts, String excelPath) {
+        try {
+            ExcelExporterService exporter = new ExcelExporterService();
+            exporter.exportCntTable(tableCounts, excelPath);
+            log.info("엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
+        } catch (Exception e) {
+            log.error("엑셀 저장 중 오류: " + e.getMessage());
+        }
+
+    }
+
+    public static void exportComparisonToExcel(ComparisonResult result, String excelPath) {
+        try {
+            ExcelExporterService exporter = new ExcelExporterService();
+            exporter.exportComparisonResult(result, excelPath);
+            log.info("비교 결과 엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
+        } catch (Exception e) {
+            log.error("엑셀 저장 중 오류: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 테이블 개수용 엑셀, 경로 받아서 파일명 생성.
+     *
+     * @param excelDir
+     * @return
+     */
+    public static String getTableCntExcelPath(File excelDir) {
+        String date = new SimpleDateFormat(DATE_FORMAT).format(new Date());
+        return new File(excelDir, date + "-mdb테이블총계.xlsx").getAbsolutePath();
+    }
+
+    /**
+     * 비교 결과용 엑셀, 경로 받아서 파일명 생성.
+     *
+     * @param excelDir
+     * @return
+     */
+    public static String getCompareExcelPath(File excelDir) {
+        String date = new SimpleDateFormat(DATE_FORMAT).format(new Date());
+        return new File(excelDir, date + "-mdb_db_비교결과.xlsx").getAbsolutePath();
+    }
+
     /**
      * 테이블 개수 데이터를 엑셀로 저장
      */
@@ -49,7 +95,7 @@ public class ExcelExporterService {
         }
     }
 
-    private void createCntSheet (Workbook workbook, List<TableCount> data) throws IOException{
+    private void createCntSheet(Workbook workbook, List<TableCount> data) throws IOException {
         try {
             Sheet sheet = workbook.createSheet(COUNT_TABLE_SHEET);
 
@@ -81,7 +127,7 @@ public class ExcelExporterService {
         try (Workbook workbook = new XSSFWorkbook()) {
             createMissingTablesSheet(workbook, result.getMissingTables());
             createMissingKeysSheet(workbook, result.getMissingKeys());
-            createCompareCntSheet(workbook, result.getcompareCnt());
+            createCompareCntSheet(workbook, result.getCompareCnt());
 
             saveWorkbook(workbook, filePath);
 
@@ -93,7 +139,7 @@ public class ExcelExporterService {
     /**
      * 없는 테이블 시트 생성
      */
-    private void createMissingTablesSheet(Workbook workbook, List<ComparisonResult.MissingTableInfo> missingTables) throws IOException {
+    private void createMissingTablesSheet(Workbook workbook, List<MissingTableInfo> missingTables) throws IOException {
 
         try {
             Sheet sheet = workbook.createSheet(MISSING_TABLES_SHEET);
@@ -104,7 +150,7 @@ public class ExcelExporterService {
             createHeaderRow(sheet, MISSING_TABLE_HEADERS, headerStyle);
 
             int rowIdx = 1;
-            for (ComparisonResult.MissingTableInfo info : missingTables) {
+            for (MissingTableInfo info : missingTables) {
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(info.getMdbFileName());
                 row.createCell(1).setCellValue(info.getTableName());
@@ -120,7 +166,7 @@ public class ExcelExporterService {
     /**
      * R_stream 없는 테이블 시트 생성
      */
-    private void createMissingKeysSheet(Workbook workbook, List<ComparisonResult.MissingKeyInfo> missingKeys) throws IOException {
+    private void createMissingKeysSheet(Workbook workbook, List<MissingKeyInfo> missingKeys) throws IOException {
         try {
             Sheet sheet = workbook.createSheet(MISSING_KEYS_SHEET);
             CellStyle headerStyle = createHeaderStyle(workbook);
@@ -129,7 +175,7 @@ public class ExcelExporterService {
             createHeaderRow(sheet, MISSING_KEY_HEADERS, headerStyle);
 
             int rowIdx = 1;
-            for (ComparisonResult.MissingKeyInfo info : missingKeys) {
+            for (MissingKeyInfo info : missingKeys) {
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(info.getMdbFileName());
                 row.createCell(1).setCellValue(info.getTableName());
@@ -145,7 +191,7 @@ public class ExcelExporterService {
     /**
      * 개수 비교 시트 생성
      */
-    private void createCompareCntSheet(Workbook workbook, List<ComparisonResult.CompareCntInfo> compareCnt) throws IOException {
+    private void createCompareCntSheet(Workbook workbook, List<CompareCntInfo> compareCnt) throws IOException {
         try {
             Sheet sheet = workbook.createSheet(COMPARE_CNT_SHEET);
             CellStyle headerStyle = createHeaderStyle(workbook);
@@ -161,7 +207,7 @@ public class ExcelExporterService {
 
             // 데이터 입력
             int dataRowIdx = 1;
-            for (ComparisonResult.CompareCntInfo info : compareCnt) {
+            for (CompareCntInfo info : compareCnt) {
                 Row row = sheet.createRow(dataRowIdx++);
                 row.createCell(0).setCellValue(info.getMdbFileName());
                 row.createCell(1).setCellValue(info.getTableName());
@@ -288,50 +334,10 @@ public class ExcelExporterService {
         }
     }
 
-    public static void exportTableCntExcel(List<TableCount> tableCounts, String excelPath) {
-        try {
-            ExcelExporterService exporter = new ExcelExporterService();
-            exporter.exportCntTable(tableCounts, excelPath);
-            log.info("엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
-        } catch (Exception e) {
-            log.error("엑셀 저장 중 오류: " + e.getMessage());
-        }
-
-    }
-
-    public static void exportComparisonToExcel(ComparisonResult result, String excelPath) {
-        try {
-            ExcelExporterService exporter = new ExcelExporterService();
-            exporter.exportComparisonResult(result, excelPath);
-            log.info("비교 결과 엑셀 파일이 성공적으로 저장되었습니다: " + excelPath);
-        } catch (Exception e) {
-            log.error("엑셀 저장 중 오류: " + e.getMessage());
-        }
-    }
-
     /**
-     * 테이블 개수용 엑셀, 경로 받아서 파일명 생성.
-     * @param excelDir
-     * @return
-     */
-    public static String getTableCntExcelPath(File excelDir) {
-        String date = new SimpleDateFormat(DATE_FORMAT).format(new Date());
-        return new File(excelDir, date + "-mdb테이블총계.xlsx").getAbsolutePath();
-    }
-
-    /**
-     * 비교 결과용 엑셀, 경로 받아서 파일명 생성.
-     * @param excelDir
-     * @return
-     */
-    public static String getCompareExcelPath(File excelDir) {
-        String date = new SimpleDateFormat(DATE_FORMAT).format(new Date());
-        return new File(excelDir, date + "-mdb_db_비교결과.xlsx").getAbsolutePath();
-    }
-
-    /** 디자인 관련 =======================================================================
-
-    /**
+     * 디자인 관련 =======================================================================
+     * <p>
+     * /**
      * 행의 셀들에 스타일
      */
     private void applyCellStyles(Row row, int cellCount, CellStyle style) {
@@ -351,6 +357,7 @@ public class ExcelExporterService {
             sheet.autoSizeColumn(i);
         }
     }
+
     /**
      * 헤더 스타일 생성
      */

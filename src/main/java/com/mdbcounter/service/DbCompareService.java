@@ -1,9 +1,12 @@
 package com.mdbcounter.service;
 
-import com.mdbcounter.model.ComparisonResult;
 import com.mdbcounter.model.MdbTableInfo;
-import com.mdbcounter.service.dao.DbComparisonDao;
-import com.mdbcounter.service.dao.DbDao;
+import com.mdbcounter.repository.dao.DbComparisonDao;
+import com.mdbcounter.repository.dao.DbDao;
+import com.mdbcounter.domain.dto.CompareCntInfo;
+import com.mdbcounter.domain.dto.ComparisonResult;
+import com.mdbcounter.domain.dto.MissingKeyInfo;
+import com.mdbcounter.domain.dto.MissingTableInfo;
 import com.mdbcounter.util.DatabaseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +54,7 @@ public class DbCompareService {
     /**
      * 메인 비교 메서드 - 전체 흐름 관리
      */
-    public ComparisonResult compareDbWithMdb(List<MdbTableInfo> mdbTableInfos) {
+    public com.mdbcounter.domain.dto.ComparisonResult compareDbWithMdb(List<MdbTableInfo> mdbTableInfos) {
         log.info("==== 비교 로직 시작 =====");
 
         try (Connection dbConn = DatabaseConfig.getConnection()) {
@@ -69,29 +72,29 @@ public class DbCompareService {
     /**
      * 비교 결과 구성
      */
-    private ComparisonResult buildComparisonResult(List<MdbTableInfo> mdbTableInfos, Set<String> dbTables, Connection dbConn) throws SQLException {
-        List<ComparisonResult.MissingTableInfo> missingTables = new ArrayList<>();
-        List<ComparisonResult.MissingKeyInfo> missingKeys = new ArrayList<>();
-        List<ComparisonResult.CompareCntInfo> compareCnt = new ArrayList<>();
+    private com.mdbcounter.domain.dto.ComparisonResult buildComparisonResult(List<MdbTableInfo> mdbTableInfos,
+                                                                             Set<String> dbTables,
+                                                                             Connection dbConn) throws SQLException {
+        List<MissingTableInfo> missingTables = new ArrayList<>();
+        List<MissingKeyInfo> missingKeys = new ArrayList<>();
+        List<CompareCntInfo> compareCnt = new ArrayList<>();
 
         for (MdbTableInfo mdbTable : mdbTableInfos) {
             tableComparison(mdbTable, dbTables, dbConn, missingTables, missingKeys, compareCnt);
         }
 
-        return new ComparisonResult.Builder()
-                .missingTables(missingTables)
-                .missingKeys(missingKeys)
-                .compareCnt(compareCnt)
-                .build();
+        return new com.mdbcounter.domain.dto.ComparisonResult(missingTables, missingKeys, compareCnt);
     }
 
     /**
      * 개별 테이블 비교 처리
      */
-    private void tableComparison(MdbTableInfo mdbTable, Set<String> dbTables, Connection dbConn,
-                                 List<ComparisonResult.MissingTableInfo> missingTables,
-                                 List<ComparisonResult.MissingKeyInfo> missingKeys,
-                                 List<ComparisonResult.CompareCntInfo> compareCnt) throws SQLException {
+    private void tableComparison(MdbTableInfo mdbTable,
+                                 Set<String> dbTables,
+                                 Connection dbConn,
+                                 List<MissingTableInfo> missingTables,
+                                 List<MissingKeyInfo> missingKeys,
+                                 List<CompareCntInfo> compareCnt) throws SQLException {
 
         String normalizedTableName = mdbTable.getNormalizedMdbColName();
 
@@ -100,7 +103,7 @@ public class DbCompareService {
             return;
         }
 
-        rStreamComparisonlogic(mdbTable, dbConn, missingKeys, compareCnt);
+        rStreamComparisonLogic(mdbTable, dbConn, missingKeys, compareCnt);
     }
 
     /**
@@ -113,24 +116,27 @@ public class DbCompareService {
     /**
      * 누락된 테이블 처리
      */
-    private void handleMissingTable(MdbTableInfo mdbTable, List<ComparisonResult.MissingTableInfo> missingTables) {
-        missingTables.add(new ComparisonResult.MissingTableInfo(mdbTable.getMdbFileName(), mdbTable.getNormalizedMdbColName()
+    private void handleMissingTable(MdbTableInfo mdbTable, List<MissingTableInfo> missingTables) {
+        missingTables.add(new MissingTableInfo(
+                mdbTable.getMdbFileName(),
+                mdbTable.getNormalizedMdbColName()
         ));
     }
 
     /**
      * RStream 비교 처리
      */
-    private void rStreamComparisonlogic(MdbTableInfo mdbTable, Connection dbConn,
-                                        List<ComparisonResult.MissingKeyInfo> missingKeys,
-                                        List<ComparisonResult.CompareCntInfo> compareCnt) throws SQLException {
+    private void rStreamComparisonLogic(MdbTableInfo mdbTable,
+                                        Connection dbConn,
+                                        List<MissingKeyInfo> missingKeys,
+                                        List<CompareCntInfo> compareCnt) throws SQLException {
 
         Map<String, Integer> mdbRStreams = mdbTable.getRStreamValues();
         if (mdbRStreams.isEmpty()) {
             return;
         }
 
-        String filterTableName = convertTableCorrectName(convertTableCorrectName(mdbTable.getNormalizedMdbColName()));
+        String filterTableName = convertTableCorrectName(mdbTable.getNormalizedMdbColName());
 
         for (Map.Entry<String, Integer> entry : mdbRStreams.entrySet()) {
             processRStreamEntry(mdbTable, entry, filterTableName, dbConn, missingKeys, compareCnt);
@@ -138,11 +144,14 @@ public class DbCompareService {
     }
 
     /**
-     * 개별 RStream Map Entry로 정리
+     * 개별 RStream Entry 처리
      */
-    private void processRStreamEntry(MdbTableInfo mdbTable, Map.Entry<String, Integer> rStreamEntry, String filterTableName, Connection dbConn,
-                                     List<ComparisonResult.MissingKeyInfo> missingKeys,
-                                     List<ComparisonResult.CompareCntInfo> compareCnt) throws SQLException {
+    private void processRStreamEntry(MdbTableInfo mdbTable,
+                                     Map.Entry<String, Integer> rStreamEntry,
+                                     String filterTableName,
+                                     Connection dbConn,
+                                     List<MissingKeyInfo> missingKeys,
+                                     List<CompareCntInfo> compareCnt) throws SQLException {
 
         String rStream = rStreamEntry.getKey();
         int mdbCount = rStreamEntry.getValue();
@@ -158,9 +167,12 @@ public class DbCompareService {
     /**
      * 카운트 비교 정보 추가
      */
-    private void addCountComparison(MdbTableInfo mdbTable, String rStream, int mdbCount, int dbCount,
-                                    List<ComparisonResult.CompareCntInfo> compareCnt) {
-        compareCnt.add(new ComparisonResult.CompareCntInfo(
+    private void addCountComparison(MdbTableInfo mdbTable,
+                                    String rStream,
+                                    int mdbCount,
+                                    int dbCount,
+                                    List<CompareCntInfo> compareCnt) {
+        compareCnt.add(new CompareCntInfo(
                 mdbTable.getMdbFileName(),
                 mdbTable.getTableName(),
                 rStream,
@@ -179,9 +191,10 @@ public class DbCompareService {
     /**
      * 누락된 키 정보 추가
      */
-    private void addMissingKey(MdbTableInfo mdbTable, String rStream,
-                               List<ComparisonResult.MissingKeyInfo> missingKeys) {
-        missingKeys.add(new ComparisonResult.MissingKeyInfo(
+    private void addMissingKey(MdbTableInfo mdbTable,
+                               String rStream,
+                               List<MissingKeyInfo> missingKeys) {
+        missingKeys.add(new MissingKeyInfo(
                 mdbTable.getMdbFileName(),
                 mdbTable.getTableName(),
                 rStream
@@ -199,27 +212,28 @@ public class DbCompareService {
     /**
      * 빈 결과 생성 (에러 발생 시)
      */
-    private ComparisonResult createEmptyResult() {
-        return new ComparisonResult.Builder()
-                .missingTables(new ArrayList<>())
-                .missingKeys(new ArrayList<>())
-                .compareCnt(new ArrayList<>())
-                .build();
+    private com.mdbcounter.domain.dto.ComparisonResult createEmptyResult() {
+        return new com.mdbcounter.domain.dto.ComparisonResult(
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new ArrayList<>()
+        );
     }
 
-
     /**
-     * 예약어, 대문자 테이블 명 처리.
+     * 예약어, 대문자 테이블명 처리
      */
-
     private String convertTableCorrectName(String table) {
         if (UPPER_TABLE.containsKey(table)) {
             return UPPER_TABLE.get(table);
-        } else return RESERVEDWORD.getOrDefault(table, table);
+        }
+        return RESERVEDWORD.getOrDefault(table, table);
     }
 
+    /**
+     * Excel 출력 가능한 데이터 존재 여부 확인
+     */
     public boolean hasExcelData(ComparisonResult result) {
         return (result.getMissingTables().isEmpty() && result.getMissingKeys().isEmpty());
     }
 }
-
