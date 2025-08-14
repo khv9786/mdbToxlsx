@@ -11,11 +11,13 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MdbService {
     public static final String MDB_EXT = ".mdb";
-    public static final String COL_NAME = "r_stream";
     private static final Logger log = LoggerFactory.getLogger(MdbService.class);
 
     private final MdbDao mdbDao;
@@ -43,7 +45,6 @@ public class MdbService {
             }
         } catch (SQLException e) {
             log.error("MDB 파일 처리 실패: {}", mdb.getName(), e);
-            throw new SQLException("MDB 파일 처리 중 오류 발생: " + mdb.getName(), e);
         }
 
         return result;
@@ -63,7 +64,6 @@ public class MdbService {
             try {
                 List<TableCount> fileCounts = getMdbTableCnt(mdbFile);
                 aggregateTableCounts(tableTotalMap, fileCounts);
-
             } catch (SQLException e) {
                 log.error("파일 처리 실패: {}", mdbFile.getName(), e);
                 failedFiles.add(mdbFile.getName());
@@ -73,12 +73,12 @@ public class MdbService {
         if (!failedFiles.isEmpty()) {
             log.warn("처리 실패한 파일들: {}", failedFiles);
         }
-
         return tableTotalMap;
     }
 
     /**
      * 컬럼 데이터 더해서 넣기.
+     *
      * @param totalMap
      * @param fileCounts
      */
@@ -91,35 +91,15 @@ public class MdbService {
     }
 
     /**
-     * mdb에서 테이블에 null 아닌 값 모두 정리.
-     *
-     * @param mdbFiles
-     * @return
-     */
-    public Map<String, Integer> calMdbTableCnt(List<File> mdbFiles) throws SQLException {
-        Map<String, Integer> tableTotalMap = new LinkedHashMap<>();
-        for (File mdb : mdbFiles) {
-            List<TableCount> oneFileCounts = getMdbTableCnt(mdb);
-            for (TableCount tableCount : oneFileCounts) {
-                String tableName = tableCount.getTableName();
-                int currentCount = tableTotalMap.getOrDefault(tableName, 0);
-                tableTotalMap.put(tableName, currentCount + tableCount.getCount());
-            }
-        }
-        return tableTotalMap;
-    }
-
-    /**
      * mdb 데이터 로딩
      */
-    public List<MdbTableInfo> loadMdbData(List<File> mdbFiles)  {
+    public List<MdbTableInfo> loadMdbData(List<File> mdbFiles) {
 
         List<MdbTableInfo> allMdbTableInfos = new ArrayList<>();
         for (File mdb : mdbFiles) {
             List<MdbTableInfo> oneFileInfos = mdbDao.getMdbTableInfo(mdb);
             allMdbTableInfos.addAll(oneFileInfos);
         }
-
         return allMdbTableInfos;
     }
 

@@ -6,7 +6,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class MdbDao {
@@ -25,7 +28,7 @@ public class MdbDao {
         String mdbFileName = mdb.getName().replaceAll("\\.mdb$", ""); // .mdb 확장자 제거
 
         try (Connection conn = DriverManager.getConnection(url)) {
-            Set<String> tableNames = getMDbTableName(conn);
+            List<String> tableNames = getMDbTableName(conn);
 //            logger.info("MDB 테이블 개수: {}", tableNames.size());
 
             for (String table : tableNames) {
@@ -48,10 +51,10 @@ public class MdbDao {
     }
 
     /**
-     * MDB 테이블 set 추출
+     * MDB 테이블 List 추출
      */
-    public Set<String> getMDbTableName(Connection conn) throws SQLException {
-        Set<String> tables = new HashSet<>();
+    public List<String> getMDbTableName(Connection conn) throws SQLException {
+        List<String> tables = new ArrayList<>();
         DatabaseMetaData meta = conn.getMetaData();
         try (ResultSet rs = meta.getTables(null, null, "%", new String[]{"TABLE"})) {
             while (rs.next()) {

@@ -32,20 +32,10 @@ public class MdbTableInfo {
         private String tableName;
         private Map<String, Integer> rStreamValues;
 
-        public Builder mdbFileName(String mdbFileName) {
-            this.mdbFileName = mdbFileName;
-            return this;
-        }
-        public Builder tableName(String tableName) {
-            this.tableName = tableName;
-            return this;
-        }
-        public Builder rStreamValues(Map<String, Integer> rStreamValues) {
-            this.rStreamValues = rStreamValues;
-            return this;
-        }
-        public MdbTableInfo build() {
-            return new MdbTableInfo(this);
-        }
+        public Builder mdbFileName(String mdbFileName) {this.mdbFileName = mdbFileName; return this;}
+        public Builder tableName(String tableName) { this.tableName = tableName; return this;}
+        public Builder rStreamValues(Map<String, Integer> rStreamValues) { this.rStreamValues = rStreamValues; return this;}
+
+        public MdbTableInfo build() { return new MdbTableInfo(this);}
     }
 }

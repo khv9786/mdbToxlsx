@@ -1,12 +1,12 @@
 package com.mdbcounter.service;
 
-import com.mdbcounter.model.MdbTableInfo;
-import com.mdbcounter.repository.dao.DbComparisonDao;
-import com.mdbcounter.repository.dao.DbDao;
 import com.mdbcounter.domain.dto.CompareCntInfo;
 import com.mdbcounter.domain.dto.ComparisonResult;
 import com.mdbcounter.domain.dto.MissingKeyInfo;
 import com.mdbcounter.domain.dto.MissingTableInfo;
+import com.mdbcounter.model.MdbTableInfo;
+import com.mdbcounter.repository.dao.DbComparisonDao;
+import com.mdbcounter.repository.dao.DbDao;
 import com.mdbcounter.util.DatabaseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,15 +46,14 @@ public class DbCompareService {
     public DbCompareService(DbDao dbDao, DbComparisonDao dbComparisonDao) {
         this.dbComparisonDao = dbComparisonDao;
         this.dbDao = dbDao;
-
     }
 
-    // TODO 단계 별로 메서드 분리 완료. 인자 이름이 길어서 다소 불편,,, 더 좋은 방법 찾아보긴 해야할듯.
-
     /**
-     * 메인 비교 메서드 - 전체 흐름 관리
+     * 메인 메서드
+     * @param mdbTableInfos
+     * @return
      */
-    public com.mdbcounter.domain.dto.ComparisonResult compareDbWithMdb(List<MdbTableInfo> mdbTableInfos) {
+    public ComparisonResult compareDbWithMdb(List<MdbTableInfo> mdbTableInfos) {
         log.info("==== 비교 로직 시작 =====");
 
         try (Connection dbConn = DatabaseConfig.getConnection()) {
@@ -72,7 +71,7 @@ public class DbCompareService {
     /**
      * 비교 결과 구성
      */
-    private com.mdbcounter.domain.dto.ComparisonResult buildComparisonResult(List<MdbTableInfo> mdbTableInfos,
+    private ComparisonResult buildComparisonResult(List<MdbTableInfo> mdbTableInfos,
                                                                              Set<String> dbTables,
                                                                              Connection dbConn) throws SQLException {
         List<MissingTableInfo> missingTables = new ArrayList<>();
@@ -83,7 +82,11 @@ public class DbCompareService {
             tableComparison(mdbTable, dbTables, dbConn, missingTables, missingKeys, compareCnt);
         }
 
-        return new com.mdbcounter.domain.dto.ComparisonResult(missingTables, missingKeys, compareCnt);
+        return new ComparisonResult.Builder()
+                .missingTables(missingTables)
+                .missingKeys(missingKeys)
+                .compareCnt(compareCnt)
+                .build();
     }
 
     /**
@@ -117,10 +120,10 @@ public class DbCompareService {
      * 누락된 테이블 처리
      */
     private void handleMissingTable(MdbTableInfo mdbTable, List<MissingTableInfo> missingTables) {
-        missingTables.add(new MissingTableInfo(
-                mdbTable.getMdbFileName(),
-                mdbTable.getNormalizedMdbColName()
-        ));
+        missingTables.add(new MissingTableInfo.Builder()
+                .mdbFileName(mdbTable.getMdbFileName())
+                .tableName(mdbTable.getNormalizedMdbColName())
+                .build());
     }
 
     /**
@@ -159,7 +162,7 @@ public class DbCompareService {
 
         addCountComparison(mdbTable, rStream, mdbCount, dbCount, compareCnt);
 
-        if (isKeyMissing(dbCount)) {
+        if (isKeyMissing(dbCount)){
             addMissingKey(mdbTable, rStream, missingKeys);
         }
     }
@@ -167,18 +170,16 @@ public class DbCompareService {
     /**
      * 카운트 비교 정보 추가
      */
-    private void addCountComparison(MdbTableInfo mdbTable,
-                                    String rStream,
-                                    int mdbCount,
-                                    int dbCount,
+    private void addCountComparison(MdbTableInfo mdbTable, String rStream, int mdbCount, int dbCount,
                                     List<CompareCntInfo> compareCnt) {
-        compareCnt.add(new CompareCntInfo(
-                mdbTable.getMdbFileName(),
-                mdbTable.getTableName(),
-                rStream,
-                mdbCount,
-                dbCount
-        ));
+        compareCnt.add(new CompareCntInfo.Builder()
+                .mdbFileName(mdbTable.getMdbFileName())
+                .tableName(mdbTable.getTableName())
+                .rStreamValue(rStream)
+                .mdbCount(mdbCount)
+                .dbCount(dbCount)
+                .build());
+
     }
 
     /**
@@ -191,14 +192,13 @@ public class DbCompareService {
     /**
      * 누락된 키 정보 추가
      */
-    private void addMissingKey(MdbTableInfo mdbTable,
-                               String rStream,
+    private void addMissingKey(MdbTableInfo mdbTable, String rStream,
                                List<MissingKeyInfo> missingKeys) {
-        missingKeys.add(new MissingKeyInfo(
-                mdbTable.getMdbFileName(),
-                mdbTable.getTableName(),
-                rStream
-        ));
+        missingKeys.add(new MissingKeyInfo.Builder()
+                .mdbFileName(mdbTable.getMdbFileName())
+                .tableName(mdbTable.getTableName())
+                .rStreamValue(rStream)
+                .build());
     }
 
     /**
@@ -212,12 +212,12 @@ public class DbCompareService {
     /**
      * 빈 결과 생성 (에러 발생 시)
      */
-    private com.mdbcounter.domain.dto.ComparisonResult createEmptyResult() {
-        return new com.mdbcounter.domain.dto.ComparisonResult(
-                new ArrayList<>(),
-                new ArrayList<>(),
-                new ArrayList<>()
-        );
+    private ComparisonResult createEmptyResult() {
+        return new ComparisonResult.Builder()
+                .missingTables(new ArrayList<>())
+                .missingKeys(new ArrayList<>())
+                .compareCnt(new ArrayList<>())
+                .build();
     }
 
     /**

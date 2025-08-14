@@ -10,7 +10,7 @@ import static com.mdbcounter.repository.dao.MdbDao.COL_NAME;
 public class DbComparisonDao {
 
     /**
-     * 특정 r_stream가 DB에 몇개가 있는지 조회
+     * MDB의 r_stream이 DB에 몇개가 있는지 조회
      */
     public int getDbRStreamCnt(Connection conn, String tableName, String rStream) throws SQLException {
         String sql = "SELECT COUNT(*) FROM " + tableName + " WHERE " + COL_NAME + " = ?";
