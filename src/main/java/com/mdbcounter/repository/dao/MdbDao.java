@@ -22,12 +22,12 @@ public class MdbDao {
      * @param mdb MDB 파일
      * @return MDB 테이블 정보 리스트
      */
-    public List<MdbTableInfo> getMdbTableInfo(File mdb) {
+    public List<MdbTableInfo> getMdbTableInfo(File mdb)  {
         List<MdbTableInfo> result = new ArrayList<>();
         String url = "jdbc:ucanaccess://" + mdb.getAbsolutePath();
         String mdbFileName = mdb.getName().replaceAll("\\.mdb$", ""); // .mdb 확장자 제거
 
-        try (Connection conn = DriverManager.getConnection(url)) {
+        try (Connection conn = DriverManager.getConnection(url)) { // Try-with-resources
             List<String> tableNames = getMDbTableName(conn);
 //            logger.info("MDB 테이블 개수: {}", tableNames.size());
 
@@ -40,13 +40,9 @@ public class MdbDao {
                             .rStreamValues(rStreamValues)
 //                            .rStreamCnt(rStreamCnt)
                             .build());
-                } catch (Exception e) {
-                    log.error("MDB 테이블 {} 처리 중 오류: {}", table, e.getMessage());
-                }
+                } catch (Exception e) {log.error("MDB 테이블 {} 처리 중 오류: {}", table, e.getMessage());}
             }
-        } catch (Exception e) {
-            log.error("[ERROR] {} 처리 중 오류: {}", mdb.getName(), e.getMessage(), e);
-        }
+        } catch (Exception e) {log.error("[ERROR] {} 처리 중 오류: {}", mdb.getName(), e.getMessage(), e);}
         return result;
     }
 
@@ -89,12 +85,11 @@ public class MdbDao {
         }
         // 그룹바이로 한번에 받아오기
         if (hasRStreamColumn) {
-//            String sql = "SELECT R_stream, COUNT(*) as cnt FROM [" + table + "] WHERE R_stream IS NOT NULL GROUP BY R_stream";
             String sql = " SELECT " + COL_NAME + ", COUNT(*) as cnt FROM [" + table + "] WHERE " + COL_NAME + " IS NOT NULL GROUP BY " + COL_NAME;
             try (PreparedStatement ps = conn.prepareStatement(sql);
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    String rStream = rs.getString("R_stream").trim();
+                    String rStream = rs.getString(COL_NAME).trim();
                     int count = rs.getInt("cnt");
                     if (!rStream.isEmpty()) {
                         rStreamInfo.put(rStream, count);
@@ -117,7 +112,7 @@ public class MdbDao {
     public int getAllTableData(Connection conn, String table) throws SQLException {
         List<String> columns = new ArrayList<>();
         DatabaseMetaData meta = conn.getMetaData();
-        try (ResultSet cols = meta.getColumns(null, null, table, "%")) {
+        try (ResultSet cols = meta.getColumns(null, null, table, "%")) { // ResultSet 은 자동으로 close.
             while (cols.next()) {
                 columns.add(cols.getString("COLUMN_NAME"));
             }

@@ -18,28 +18,6 @@ import java.util.*;
 public class DbCompareService {
 
     private static final Logger log = LoggerFactory.getLogger(DbCompareService.class);
-    private static final Map<String, String> UPPER_TABLE;
-    private static final Map<String, String> RESERVEDWORD;
-
-    static {
-        Map<String, String> map = new HashMap<>();
-        map.put("rim027", "\"RIM027\"");
-        map.put("rim047", "\"RIM047\"");
-        map.put("rim0100", "\"RIM0100\"");
-        map.put("RIM027", "\"RIM027\"");
-        map.put("RIM047", "\"RIM047\"");
-        map.put("RIM0100", "\"RIM0100\"");
-        UPPER_TABLE = Collections.unmodifiableMap(map);
-    }
-
-    static {
-        Map<String, String> map = new HashMap<>();
-        map.put("cross", "\"cross\"");
-        map.put("CROSS", "\"cross\"");
-        RESERVEDWORD = Collections.unmodifiableMap(map);
-    }
-
-
     private final DbComparisonDao dbComparisonDao;
     private final DbDao dbDao;
 
@@ -50,6 +28,7 @@ public class DbCompareService {
 
     /**
      * 메인 메서드
+     *
      * @param mdbTableInfos
      * @return
      */
@@ -72,8 +51,8 @@ public class DbCompareService {
      * 비교 결과 구성
      */
     private ComparisonResult buildComparisonResult(List<MdbTableInfo> mdbTableInfos,
-                                                                             Set<String> dbTables,
-                                                                             Connection dbConn) throws SQLException {
+                                                   Set<String> dbTables,
+                                                   Connection dbConn) throws SQLException {
         List<MissingTableInfo> missingTables = new ArrayList<>();
         List<MissingKeyInfo> missingKeys = new ArrayList<>();
         List<CompareCntInfo> compareCnt = new ArrayList<>();
@@ -138,8 +117,8 @@ public class DbCompareService {
         if (mdbRStreams.isEmpty()) {
             return;
         }
-
-        String filterTableName = convertTableCorrectName(mdbTable.getNormalizedMdbColName());
+        //convertTableCorrectName 예약어, 대문자 처리 -> 쿼리에 "" 처리로 변경.
+        String filterTableName = (mdbTable.getNormalizedMdbColName());
 
         for (Map.Entry<String, Integer> entry : mdbRStreams.entrySet()) {
             processRStreamEntry(mdbTable, entry, filterTableName, dbConn, missingKeys, compareCnt);
@@ -158,11 +137,17 @@ public class DbCompareService {
 
         String rStream = rStreamEntry.getKey();
         int mdbCount = rStreamEntry.getValue();
-        int dbCount = dbComparisonDao.getDbRStreamCnt(dbConn, filterTableName, rStream);
+        int dbCount = 0;
+        try {
+            dbCount = dbComparisonDao.getDbRStreamCnt(dbConn, filterTableName, rStream);
+        } catch (SQLException E) {
+            log.error("DB col 비교 로직 중 에러 : " + E);
+            throw E;
+        }
 
         addCountComparison(mdbTable, rStream, mdbCount, dbCount, compareCnt);
 
-        if (isKeyMissing(dbCount)){
+        if (isKeyMissing(dbCount)) {
             addMissingKey(mdbTable, rStream, missingKeys);
         }
     }
@@ -219,17 +204,6 @@ public class DbCompareService {
                 .compareCnt(new ArrayList<>())
                 .build();
     }
-
-    /**
-     * 예약어, 대문자 테이블명 처리
-     */
-    private String convertTableCorrectName(String table) {
-        if (UPPER_TABLE.containsKey(table)) {
-            return UPPER_TABLE.get(table);
-        }
-        return RESERVEDWORD.getOrDefault(table, table);
-    }
-
     /**
      * Excel 출력 가능한 데이터 존재 여부 확인
      */
